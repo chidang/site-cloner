@@ -21,6 +21,7 @@
 		$('#sd-progress').hide();
 		$('#sd-error').show().find('p').text(msg || __('An error occurred.', 'site-cloner'));
 		$('#sd-build').prop('disabled', false);
+		$('#sd-build-spin').hide();
 	}
 
 	// Loop a step (db/files) until it's done.
@@ -40,6 +41,7 @@
 		sdBuildPass = $('#sd-build-pass').length ? $('#sd-build-pass').val() : '';
 		sdBuildIps = $('#sd-build-ips').length ? $('#sd-build-ips').val() : '';
 		$(this).prop('disabled', true);
+		$('#sd-build-spin').show();
 		$('#sd-error').hide();
 		$('#sd-result').hide();
 		$('#sd-progress').show();
@@ -97,6 +99,7 @@
 		if (files.manifest) { $ul.append(link(files.manifest, 'manifest.json')); }
 		$('#sd-result').show();
 		$('#sd-build').prop('disabled', false);
+		$('#sd-build-spin').hide();
 	}
 	function link(url, label) {
 		return '<li><a href="' + url + '" download>⬇ ' + label + '</a></li>';

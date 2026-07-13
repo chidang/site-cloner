@@ -165,10 +165,7 @@ class Pull {
 	}
 	private static function json( $arr, $code = 200 ) {
 		while ( ob_get_level() ) { ob_end_clean(); }
-		status_header( $code );
-		header( 'Content-Type: application/json; charset=utf-8' );
-		echo wp_json_encode( $arr );
-		exit;
+		wp_send_json( $arr, $code ); // sets the JSON Content-Type + status, prints wp_json_encode(), and exits.
 	}
 
 	/** Recursively delete a directory (used to clean up the source). */

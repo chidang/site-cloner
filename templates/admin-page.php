@@ -19,6 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 			<span class="description"><?php esc_html_e( "Only these IPs can pull the package. Leave empty = no restriction. Don't know the destination server's IP yet? Leave it empty, click Test connection on the destination side, and it will report the IP for you to add here.", 'site-cloner' ); ?></span>
 		</p>
 		<button id="sd-build" class="button button-primary button-hero"><?php esc_html_e( 'Create Package', 'site-cloner' ); ?></button>
+		<span id="sd-build-spin" class="sd-spinner" style="display:none;" aria-hidden="true"></span>
 
 		<div id="sd-progress" class="sd-progress" style="display:none;">
 			<div class="sd-step" data-step="db">
