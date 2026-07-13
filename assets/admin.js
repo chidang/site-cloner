@@ -468,28 +468,7 @@
 		) + ' ' + (r.note || '');
 		$('#sd-imp-result .sd-imp-log').text(log);
 		$('#sd-imp-result .sd-imp-login').attr('href', (r.new_url || '') + '/wp-admin/');
-		if (impLink) { $('#sd-src-uninstall-wrap').show(); }
 		$('#sd-imp-result').show();
 	}
-
-	$('#sd-src-uninstall').on('click', function () {
-		if (!impLink) { return; }
-		var $btn = $(this).prop('disabled', true).text(__('Removing…', 'site-cloner'));
-		var $msg = $('.sd-src-uninstall-msg').text('');
-		post('sd_pull_uninstall', { link: impLink, password: impPassword, insecure: impInsecure })
-			.done(function (r) {
-				if (r.success && r.data && r.data.ok) {
-					$btn.text(__('Removed', 'site-cloner'));
-					$msg.css('color', '#1e4620').text('✔ ' + r.data.message);
-				} else {
-					$btn.prop('disabled', false).text(__('Remove plugin from source site', 'site-cloner'));
-					$msg.css('color', '#8a1f1f').text('✖ ' + ((r.data && r.data.message) || __('Could not remove.', 'site-cloner')));
-				}
-			})
-			.fail(function () {
-				$btn.prop('disabled', false).text(__('Remove plugin from source site', 'site-cloner'));
-				$msg.css('color', '#8a1f1f').text('✖ ' + __('Connection error.', 'site-cloner'));
-			});
-	});
 
 })(jQuery);

@@ -61,7 +61,6 @@ class Plugin {
 		add_action( 'wp_ajax_sd_pull_download', array( $this, 'ajax_pull_download' ) );
 		add_action( 'wp_ajax_sd_pull_test',     array( $this, 'ajax_pull_test' ) );
 		add_action( 'wp_ajax_sd_pull_cleanup',  array( $this, 'ajax_pull_cleanup' ) );
-		add_action( 'wp_ajax_sd_pull_uninstall', array( $this, 'ajax_pull_uninstall' ) );
 	}
 
 	public function menu() {
@@ -302,14 +301,6 @@ class Plugin {
 		$verify = empty( $_POST['insecure'] );
 		$pwd    = (string) wp_unslash( $_POST['password'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw password forwarded to the source over a header and verified with password_verify(); sanitizing would corrupt valid passwords.
 		wp_send_json_success( array( 'cleaned' => Pull::cleanup( $link, $verify, $pwd ) ) );
-	}
-
-	public function ajax_pull_uninstall() {
-		$this->guard();
-		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- esc_url_raw() sanitizes the URL; WPCS classes it as an escaping (not sanitizing) function so it flags a false positive.
-		$verify = empty( $_POST['insecure'] );
-		$pwd    = (string) wp_unslash( $_POST['password'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw password forwarded to the source over a header and verified with password_verify(); sanitizing would corrupt valid passwords.
-		wp_send_json_success( Pull::uninstall_remote( $link, $verify, $pwd ) );
 	}
 
 	public function ajax_pull_download() {

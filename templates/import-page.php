@@ -84,10 +84,6 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 			<h2>✅ <?php esc_html_e( 'Migration complete', 'site-cloner' ); ?></h2>
 			<p class="sd-imp-log"></p>
 			<p><a class="sd-imp-login" href="#">→ <?php esc_html_e( 'Open wp-admin (log back in if needed)', 'site-cloner' ); ?></a></p>
-			<p id="sd-src-uninstall-wrap" style="display:none;margin-top:10px;">
-				<button id="sd-src-uninstall" class="button"><?php esc_html_e( 'Remove plugin from the source site', 'site-cloner' ); ?></button>
-				<span class="sd-src-uninstall-msg" style="margin-left:8px;"></span>
-			</p>
 		</div>
 
 		<div id="sd-imp-error" class="notice notice-error" style="display:none;"><p></p></div>
