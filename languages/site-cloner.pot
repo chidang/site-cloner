@@ -9,15 +9,15 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-13T08:38:54+00:00\n"
+"POT-Creation-Date: 2026-07-13T11:24:49+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.10.0\n"
 "X-Domain: site-cloner\n"
 
 #. Plugin Name of the plugin
 #: site-cloner.php
+#: site-cloner.php:69
 #: site-cloner.php:70
-#: site-cloner.php:71
 msgid "Site Cloner"
 msgstr ""
 
@@ -161,7 +161,7 @@ msgstr ""
 
 #: includes/class-sd-importer.php:66
 #: includes/class-sd-package.php:23
-#: includes/class-sd-package.php:191
+#: includes/class-sd-package.php:208
 msgid "Invalid package ID."
 msgstr ""
 
@@ -198,7 +198,7 @@ msgid "Could not read database.sql."
 msgstr ""
 
 #: includes/class-sd-package.php:37
-#: includes/class-sd-package.php:249
+#: includes/class-sd-package.php:266
 msgid "Package not found."
 msgstr ""
 
@@ -313,24 +313,32 @@ msgstr ""
 msgid "Could not write the local file."
 msgstr ""
 
-#: site-cloner.php:77
+#: site-cloner.php:76
 msgid "Site Cloner – Import"
 msgstr ""
 
-#: site-cloner.php:78
+#: site-cloner.php:77
 msgid "Site Cloner Import"
 msgstr ""
 
-#: site-cloner.php:88
+#: site-cloner.php:87
 msgid "Backup"
 msgstr ""
 
-#: site-cloner.php:89
+#: site-cloner.php:88
 msgid "Restore"
 msgstr ""
 
-#: site-cloner.php:121
+#: site-cloner.php:120
 msgid "Permission denied."
+msgstr ""
+
+#: site-cloner.php:222
+msgid "Invalid package."
+msgstr ""
+
+#: site-cloner.php:226
+msgid "Installer not found."
 msgstr ""
 
 #: templates/admin-page.php:6

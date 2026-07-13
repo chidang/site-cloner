@@ -1,5 +1,9 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
+// This template is require'd inside Plugin::render_page(), so every variable
+// here is method-local, not global. The prefix sniff can't see that when it
+// scans the file in isolation, so silence its false positives file-wide.
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 ?>
 <div class="wrap sd-wrap">
 	<h1>Site Cloner</h1>

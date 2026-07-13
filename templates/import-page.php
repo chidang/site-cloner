@@ -1,6 +1,10 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 /** @var array $packages */
+// This template is require'd inside Plugin::render_import_page(), so every
+// variable here is method-local, not global. The prefix sniff can't see that
+// when it scans the file in isolation, so silence its false positives file-wide.
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 ?>
 <div class="wrap sd-wrap">
 	<h1><?php esc_html_e( 'Site Cloner – Import (Staging)', 'site-cloner' ); ?></h1>
