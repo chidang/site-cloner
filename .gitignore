@@ -18,3 +18,7 @@ Thumbs.db
 # PHP deps (only if ever added)
 /vendor/
 /node_modules/
+
+# Test artifacts
+/.phpunit.result.cache
+/.phpunit.cache/

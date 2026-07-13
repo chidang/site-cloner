@@ -22,13 +22,16 @@ class Zip_Stream {
 	const CHUNK = 8388608; // 8 MB read blocks while streaming file data.
 
 	/**
-	 * Stream the given files as one attachment.
+	 * Plan the archive layout: filter to real files, then compute each member's
+	 * size / local-header offset / whether it needs a Zip64 offset, plus the
+	 * central-directory size, its start offset and the exact total output length.
 	 *
-	 * @param array  $entries  List of array( 'path' => absolute path, 'name' => name-in-zip ).
-	 * @param string $filename Download filename shown to the browser.
+	 * Pure and side-effect free (only reads file sizes) so it can be unit-tested.
+	 *
+	 * @param array $entries List of array( 'path' => absolute path, 'name' => name-in-zip ).
+	 * @return array{items:array,count:int,central_len:int,cd_offset:int,total:int}
 	 */
-	public static function stream( array $entries, $filename ) {
-		// Keep only readable regular files; record each member's size.
+	public static function plan( array $entries ) {
 		$items = array();
 		foreach ( $entries as $e ) {
 			if ( empty( $e['path'] ) || ! is_file( $e['path'] ) ) {
@@ -41,7 +44,6 @@ class Zip_Stream {
 			);
 		}
 
-		// Pre-pass: member offsets + total output length (independent of CRC).
 		$offset      = 0;
 		$central_len = 0;
 		foreach ( $items as $i => $it ) {
@@ -51,54 +53,91 @@ class Zip_Stream {
 			$offset               += 30 + $name_len + $it['size']; // local header + name + data (sizes < 4 GB per part).
 			$central_len          += 46 + $name_len + ( $items[ $i ]['zip64'] ? 12 : 0 );
 		}
-		$count     = count( $items );
-		$cd_offset = $offset;
-		$total     = $offset + $central_len + 56 /* zip64 eocd */ + 20 /* locator */ + 22 /* eocd */;
 
-		if ( function_exists( 'nocache_headers' ) ) {
-			nocache_headers();
-		}
-		header( 'Content-Type: application/zip' );
-		header( 'Content-Disposition: attachment; filename="' . str_replace( array( '"', "\r", "\n" ), '', $filename ) . '"' );
-		header( 'Content-Length: ' . $total );
-		header( 'X-Content-Type-Options: nosniff' );
+		return array(
+			'items'       => $items,
+			'count'       => count( $items ),
+			'central_len' => $central_len,
+			'cd_offset'   => $offset,
+			'total'       => $offset + $central_len + 56 /* zip64 eocd */ + 20 /* locator */ + 22 /* eocd */,
+		);
+	}
 
-		@set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- may be disabled on some hosts; a long stream must not be capped by max_execution_time.
-		while ( ob_get_level() > 0 ) {
-			ob_end_clean(); // don't buffer a multi-GB stream in memory.
+	/**
+	 * Stream the given files as one ZIP attachment.
+	 *
+	 * @param array         $entries  List of array( 'path' => absolute path, 'name' => name-in-zip ).
+	 * @param string        $filename Download filename shown to the browser.
+	 * @param callable|null $sink     Optional byte writer( string $bytes ). Defaults to echo+flush
+	 *                                and sending HTTP headers; tests pass a collector to capture
+	 *                                the archive in-process without touching output buffers.
+	 * @return int The total number of bytes written (== Content-Length).
+	 */
+	public static function stream( array $entries, $filename, $sink = null ) {
+		$plan = self::plan( $entries );
+
+		if ( null === $sink ) {
+			if ( function_exists( 'nocache_headers' ) ) {
+				nocache_headers();
+			}
+			header( 'Content-Type: application/zip' );
+			header( 'Content-Disposition: attachment; filename="' . str_replace( array( '"', "\r", "\n" ), '', $filename ) . '"' );
+			header( 'Content-Length: ' . $plan['total'] );
+			header( 'X-Content-Type-Options: nosniff' );
+
+			@set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- may be disabled on some hosts; a long stream must not be capped by max_execution_time.
+			while ( ob_get_level() > 0 ) {
+				ob_end_clean(); // don't buffer a multi-GB stream in memory.
+			}
+			$sink = static function ( $bytes ) {
+				echo $bytes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Binary ZIP bytes streamed as an octet attachment; escaping would corrupt the archive.
+				flush();
+			};
 		}
+
+		self::write( $plan, $sink );
+		return $plan['total'];
+	}
+
+	/** Emit the whole archive (local headers + data + central directory + EOCD) through $sink. */
+	private static function write( array $plan, callable $sink ) {
+		$items = $plan['items'];
 
 		// 1) Local file header + raw data for each member.
 		foreach ( $items as $i => $it ) {
 			$crc                = self::crc32_file( $it['path'] );
 			$items[ $i ]['crc'] = $crc;
-			self::out( self::local_header( $it['name'], $crc, $it['size'] ) );
-			self::pump( $it['path'] );
+			$sink( self::local_header( $it['name'], $crc, $it['size'] ) );
+			self::pump( $it['path'], $sink );
 		}
 
 		// 2) Central directory.
 		foreach ( $items as $it ) {
-			self::out( self::central_header( $it['name'], $it['crc'], $it['size'], $it['offset'], $it['zip64'] ) );
+			$sink( self::central_header( $it['name'], $it['crc'], $it['size'], $it['offset'], $it['zip64'] ) );
 		}
 
 		// 3) Zip64 end of central directory record + locator, then the classic EOCD.
-		$z64_offset = $cd_offset + $central_len;
-		self::out(
+		$count      = $plan['count'];
+		$central    = $plan['central_len'];
+		$cd_offset  = $plan['cd_offset'];
+		$z64_offset = $cd_offset + $central;
+
+		$sink(
 			pack( 'V', 0x06064b50 ) . pack( 'P', 44 )
 			. pack( 'v', 45 ) . pack( 'v', 45 )
 			. pack( 'V', 0 ) . pack( 'V', 0 )
 			. pack( 'P', $count ) . pack( 'P', $count )
-			. pack( 'P', $central_len ) . pack( 'P', $cd_offset )
+			. pack( 'P', $central ) . pack( 'P', $cd_offset )
 		);
-		self::out(
+		$sink(
 			pack( 'V', 0x07064b50 ) . pack( 'V', 0 )
 			. pack( 'P', $z64_offset ) . pack( 'V', 1 )
 		);
-		self::out(
+		$sink(
 			pack( 'V', 0x06054b50 )
 			. pack( 'v', 0 ) . pack( 'v', 0 )
 			. pack( 'v', min( $count, 0xFFFF ) ) . pack( 'v', min( $count, 0xFFFF ) )
-			. pack( 'V', min( $central_len, 0xFFFFFFFF ) ) . pack( 'V', min( $cd_offset, 0xFFFFFFFF ) )
+			. pack( 'V', min( $central, 0xFFFFFFFF ) ) . pack( 'V', min( $cd_offset, 0xFFFFFFFF ) )
 			. pack( 'v', 0 )
 		);
 	}
@@ -153,21 +192,15 @@ class Zip_Stream {
 		return hexdec( hash_file( 'crc32b', $path ) );
 	}
 
-	/** Stream a file's bytes to the client in chunks. */
-	private static function pump( $path ) {
+	/** Stream a file's bytes through $sink in chunks. */
+	private static function pump( $path, callable $sink ) {
 		$fh = fopen( $path, 'rb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Streaming multi-GB package parts to the client; WP_Filesystem buffers whole files in memory.
 		if ( ! $fh ) {
 			return;
 		}
 		while ( ! feof( $fh ) ) {
-			self::out( fread( $fh, self::CHUNK ) );
+			$sink( fread( $fh, self::CHUNK ) );
 		}
 		fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Chunked stream I/O; see fopen note.
-	}
-
-	/** Echo raw bytes and flush so the download progresses without buffering. */
-	private static function out( $bytes ) {
-		echo $bytes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Binary ZIP bytes streamed as an octet attachment; escaping would corrupt the archive.
-		flush();
 	}
 }
