@@ -1,0 +1,22 @@
+# Files excluded from the distributed plugin zip (used by release.sh).
+# NOTE: templates/*.tpl and languages/*.pot MUST ship — do not add them here.
+/.git
+/.github
+/.gitignore
+/.gitattributes
+/.editorconfig
+/.distignore
+/.claude
+/.idea
+/.vscode
+/.DS_Store
+/node_modules
+/build
+/release.sh
+/README.md
+/CHANGELOG.md
+/CONTRIBUTING.md
+/CLAUDE.md
+**/*.map
+**/*.log
+**/.DS_Store

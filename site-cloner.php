@@ -39,6 +39,7 @@ class Plugin {
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
+		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'action_links' ) );
 
 		// Build steps run via AJAX (split into chunks to avoid timeouts).
 		add_action( 'wp_ajax_sd_build_init',     array( $this, 'ajax_init' ) );
@@ -75,6 +76,15 @@ class Plugin {
 			'sd-import',
 			array( $this, 'render_import_page' )
 		);
+	}
+
+	/** Quick links on the Plugins list row. */
+	public function action_links( $links ) {
+		$mine = array(
+			'<a href="' . esc_url( admin_url( 'tools.php?page=site-cloner' ) ) . '">' . esc_html__( 'Backup', 'site-cloner' ) . '</a>',
+			'<a href="' . esc_url( admin_url( 'tools.php?page=sd-import' ) ) . '">' . esc_html__( 'Restore', 'site-cloner' ) . '</a>',
+		);
+		return array_merge( $mine, $links );
 	}
 
 	public function assets( $hook ) {

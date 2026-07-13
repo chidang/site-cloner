@@ -1,0 +1,20 @@
+# Release artifacts
+/build/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+/.idea/
+/.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Logs & maps
+*.log
+*.map
+
+# PHP deps (only if ever added)
+/vendor/
+/node_modules/

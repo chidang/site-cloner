@@ -44,8 +44,8 @@ class Archive {
 			throw new \Exception( esc_html__( 'Could not create the file list.', 'site-cloner' ) );
 		}
 		$it = new \RecursiveIteratorIterator(
-			new \RecursiveDirectoryIterator( $this->root, FilesystemIterator::SKIP_DOTS ),
-			RecursiveIteratorIterator::SELF_FIRST
+			new \RecursiveDirectoryIterator( $this->root, \FilesystemIterator::SKIP_DOTS ),
+			\RecursiveIteratorIterator::SELF_FIRST
 		);
 		$count = 0;
 		foreach ( $it as $file ) {
@@ -89,7 +89,7 @@ class Archive {
 
 		$pf  = $this->part_path( $part );
 		$zip = new \ZipArchive();
-		if ( $zip->open( $pf, ZipArchive::CREATE ) !== true ) {
+		if ( $zip->open( $pf, \ZipArchive::CREATE ) !== true ) {
 			/* translators: %s: zip archive file name */
 			throw new \Exception( esc_html( sprintf( __( 'Could not open %s', 'site-cloner' ), basename( $pf ) ) ) );
 		}

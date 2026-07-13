@@ -34,9 +34,9 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 	<div class="sd-card">
 		<h2 style="margin-top:0;"><?php esc_html_e( 'Or select a package already on staging', 'site-cloner' ); ?></h2>
-		<p class="description"><?php esc_html_e( 'Copy the package folder into', 'site-cloner' ); ?> <code>wp-content/sd-packages/</code> <?php esc_html_e( '(via FTP/File Manager), then reload this page.', 'site-cloner' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Copy the package folder into', 'site-cloner' ); ?> <code>wp-content/uploads/sd-packages/</code> <?php esc_html_e( '(via FTP/File Manager), then reload this page.', 'site-cloner' ); ?></p>
 		<?php if ( empty( $packages ) ) : ?>
-			<p><?php esc_html_e( 'No packages found in', 'site-cloner' ); ?> <code>wp-content/sd-packages/</code>.</p>
+			<p><?php esc_html_e( 'No packages found in', 'site-cloner' ); ?> <code>wp-content/uploads/sd-packages/</code>.</p>
 		<?php else : ?>
 			<table class="widefat striped" id="sd-pkg-table">
 				<thead><tr><th></th><th><?php esc_html_e( 'Package', 'site-cloner' ); ?></th><th><?php esc_html_e( 'Source site', 'site-cloner' ); ?></th><th><?php esc_html_e( 'Created', 'site-cloner' ); ?></th><th><?php esc_html_e( 'Size', 'site-cloner' ); ?></th></tr></thead>
