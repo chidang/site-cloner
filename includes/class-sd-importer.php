@@ -1,0 +1,318 @@
+<?php
+namespace Flexa\SiteCloner;
+
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+/**
+ * Importer that runs on STAGING via wp-admin.
+ * - Scans available packages in wp-content/sd-packages/.
+ * - Extracts files in chunks (DB untouched yet -> auth still intact).
+ * - Imports DB + search-replace in a SINGLE request (auth verified at request start).
+ */
+class Importer {
+
+	const EXTRACT_BATCH = 300;
+
+	/** Files to exclude when extracting onto staging. */
+	private static function excluded( $name ) {
+		$skip = array(
+			'wp-content/plugins/site-cloner/', // don't overwrite ourselves while running
+			'wp-content/sd-packages/',
+			'wp-config.php',
+			// Production cache drop-ins can cause a fatal on staging (missing Redis/Memcached…).
+			'wp-content/object-cache.php',
+			'wp-content/advanced-cache.php',
+			'wp-content/db.php',
+		);
+		foreach ( $skip as $s ) {
+			if ( $name === $s || 0 === strpos( $name, $s ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** List valid packages in sd-packages. */
+	public static function list_packages() {
+		$out = array();
+		if ( ! is_dir( FLEXA_PACKAGE_DIR ) ) {
+			return $out;
+		}
+		foreach ( glob( FLEXA_PACKAGE_DIR . '/*', GLOB_ONLYDIR ) as $dir ) {
+			$id = basename( $dir );
+			$has_archive = file_exists( "$dir/archive.zip" ) || glob( "$dir/archive-*.zip" );
+			if ( file_exists( "$dir/manifest.json" ) && file_exists( "$dir/database.sql" ) && $has_archive ) {
+				$m = json_decode( file_get_contents( "$dir/manifest.json" ), true );
+				$size = (int) @filesize( "$dir/database.sql" );
+				foreach ( glob( "$dir/archive*.zip" ) as $az ) {
+					$size += (int) @filesize( $az );
+				}
+				$out[] = array(
+					'id'       => $id,
+					'site_url' => $m['site_url'] ?? '?',
+					'created'  => $m['created'] ?? '',
+					'size'     => size_format( $size ),
+				);
+			}
+		}
+		return $out;
+	}
+
+	private $dir;
+	private $manifest;
+
+	public function __construct( $id ) {
+		if ( ! preg_match( '/^[A-Za-z0-9_]+$/', $id ) ) {
+			throw new \Exception( esc_html__( 'Invalid package ID.', 'site-cloner' ) );
+		}
+		$this->dir = FLEXA_PACKAGE_DIR . '/' . $id;
+		$this->manifest = json_decode( @file_get_contents( $this->dir . '/manifest.json' ), true );
+		if ( ! $this->manifest ) {
+			throw new \Exception( esc_html__( 'Could not read the package manifest.', 'site-cloner' ) );
+		}
+	}
+
+	/** Step 1: prepare. List the zip parts + set up the runner for the DB part. */
+	public function prepare() {
+		// Archive part list (prefer the manifest, fall back to scanning the directory).
+		$names = ! empty( $this->manifest['archives'] ) ? $this->manifest['archives'] : array();
+		if ( ! $names ) {
+			foreach ( array_merge(
+				glob( $this->dir . '/archive.zip' ) ?: array(),
+				glob( $this->dir . '/archive-*.zip' ) ?: array()
+			) as $p ) {
+				$names[] = basename( $p );
+			}
+		}
+		sort( $names );
+
+		$parts = array();
+		$total = 0;
+		foreach ( $names as $name ) {
+			$path = $this->dir . '/' . basename( $name );
+			if ( ! is_file( $path ) ) {
+				/* translators: %s: archive part file name */
+				throw new \Exception( esc_html( sprintf( __( 'Missing archive part: %s', 'site-cloner' ), basename( $name ) ) ) );
+			}
+			$zip = new \ZipArchive();
+			if ( $zip->open( $path ) !== true ) {
+				/* translators: %s: archive part file name */
+				throw new \Exception( esc_html( sprintf( __( 'Could not open %s', 'site-cloner' ), basename( $name ) ) ) );
+			}
+			$entries = $zip->numFiles;
+			$zip->close();
+			$parts[] = array( 'name' => basename( $name ), 'entries' => $entries );
+			$total  += $entries;
+		}
+
+		global $wpdb;
+		$old_url  = rtrim( $this->manifest['site_url'], '/' );
+		$old_home = rtrim( $this->manifest['home_url'], '/' );
+		$old_path = rtrim( str_replace( '\\', '/', $this->manifest['abspath'] ), '/' ) . '/';
+		$new_url  = rtrim( get_site_url(), '/' );
+		$new_path = rtrim( str_replace( '\\', '/', ABSPATH ), '/' ) . '/';
+
+		// Set up the runner (chunked DB) — hashed token + state, no DB password stored.
+		$runner_url = null;
+		$token      = bin2hex( random_bytes( 32 ) );
+		$state = array(
+			'abspath'     => str_replace( '\\', '/', ABSPATH ),
+			'prod_prefix' => $this->manifest['prefix'],
+			'stag_prefix' => $wpdb->prefix,
+			'old_url'     => $old_url,
+			'old_home'    => $old_home,
+			'old_path'    => $old_path,
+			'new_url'     => $new_url,
+			'new_path'    => $new_path,
+			'sql'         => 'database.sql',
+			'sql_size'    => (int) @filesize( $this->dir . '/database.sql' ),
+			'pairs'       => Replace::build_pairs( $old_url, $new_url, $old_home, get_home_url(), $old_path, $new_path ),
+			'import'      => array( 'offset' => 0, 'done' => false, 'stmts' => 0 ),
+			'replace'     => array( 'started' => false, 'changed' => 0 ),
+		);
+
+		$ok_state = false !== file_put_contents( $this->dir . '/sd-state.json', wp_json_encode( $state ) );
+		$ok_hash  = false !== file_put_contents( $this->dir . '/sd-token.hash', hash( 'sha256', $token ) );
+		$ok_run   = copy( FLEXA_PATH . 'templates/runner.tpl', $this->dir . '/runner.php' );
+
+		if ( $ok_state && $ok_hash && $ok_run ) {
+			@file_put_contents(
+				$this->dir . '/.htaccess',
+				"<FilesMatch \"^(sd-state\\.json|sd-token\\.hash)$\">\n"
+				. "  <IfModule mod_authz_core.c>Require all denied</IfModule>\n"
+				. "  <IfModule !mod_authz_core.c>Order allow,deny\nDeny from all</IfModule>\n"
+				. "</FilesMatch>\n"
+			);
+			$runner_url = FLEXA_PACKAGE_URL . '/' . basename( $this->dir ) . '/runner.php';
+		}
+
+		return array(
+			'parts'       => $parts,
+			'files_total' => $total,
+			'old_url'     => $old_url,
+			'new_url'     => $new_url,
+			'runner_url'  => $runner_url,
+			'token'       => $token,
+		);
+	}
+
+	/** Step 2: extract one chunk of entries from a SINGLE archive part. */
+	public function extract( $part_name, $offset ) {
+		$part_name = basename( $part_name );
+		if ( ! preg_match( '/^archive(-\d+)?\.zip$/', $part_name ) ) {
+			throw new \Exception( esc_html__( 'Invalid archive part name.', 'site-cloner' ) );
+		}
+		$path = $this->dir . '/' . $part_name;
+		if ( ! is_file( $path ) ) {
+			/* translators: %s: archive part file name */
+			throw new \Exception( esc_html( sprintf( __( 'Archive part not found: %s', 'site-cloner' ), $part_name ) ) );
+		}
+
+		$zip = new \ZipArchive();
+		if ( $zip->open( $path ) !== true ) {
+			/* translators: %s: archive part file name */
+			throw new \Exception( esc_html( sprintf( __( 'Could not open %s', 'site-cloner' ), $part_name ) ) );
+		}
+		$total = $zip->numFiles;
+		$names = array();
+		$end   = min( $offset + self::EXTRACT_BATCH, $total );
+
+		for ( $i = $offset; $i < $end; $i++ ) {
+			$stat = $zip->statIndex( $i );
+			$name = $stat['name'];
+			if ( self::excluded( $name ) ) {
+				continue;
+			}
+			if ( substr( $name, -1 ) === '/' ) {
+				wp_mkdir_p( ABSPATH . $name );
+				continue;
+			}
+			$names[] = $name;
+		}
+		if ( $names ) {
+			$zip->extractTo( ABSPATH, $names );
+		}
+		$zip->close();
+
+		return array(
+			'offset' => $end,
+			'done'   => ( $end >= $total ),
+			'total'  => $total,
+		);
+	}
+
+	/**
+	 * Step 3 (single request): import DB + search-replace + update prefix.
+	 * NOT split into chunks, to avoid losing the login session after overwriting the users/options tables.
+	 */
+	public function deploy_database() {
+		global $wpdb;
+		@set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions, Squiz.PHP.DiscouragedFunctions.Discouraged -- Scoped to this single long-running DB-import request, not global.
+		@ignore_user_abort( true );
+		@ini_set( 'memory_limit', '512M' ); // phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- Scoped to this single long-running DB-import request; raises memory only for the import.
+
+		$mysqli       = $wpdb->dbh;
+		$prod_prefix  = $this->manifest['prefix'];
+		$stag_prefix  = $wpdb->prefix;
+
+		$old_url  = rtrim( $this->manifest['site_url'], '/' );
+		$old_home = rtrim( $this->manifest['home_url'], '/' );
+		$old_path = rtrim( str_replace( '\\', '/', $this->manifest['abspath'] ), '/' ) . '/';
+		$new_url  = rtrim( get_site_url(), '/' );
+		$new_path = rtrim( str_replace( '\\', '/', ABSPATH ), '/' ) . '/';
+
+		// 1) Import SQL (keep the production prefix).
+		$stmts = $this->import_sql( $mysqli, $this->dir . '/database.sql' );
+
+		// 2) Make sure this plugin stays active after overwriting options (so the admin page still renders).
+		$this->ensure_self_active( $mysqli, $prod_prefix );
+
+		// 3) Safe search-replace (each domain mapped for both http and https).
+		$pairs   = Replace::build_pairs( $old_url, $new_url, $old_home, get_home_url(), $old_path, $new_path );
+		$changed = Replace::run( $mysqli, $pairs );
+
+		// 4) If the prefixes differ -> update $table_prefix in the staging wp-config.php.
+		$prefix_note = '';
+		if ( $prod_prefix !== $stag_prefix ) {
+			$ok = $this->update_config_prefix( $prod_prefix );
+			$prefix_note = $ok
+				/* translators: %s: table prefix */
+				? sprintf( __( 'Changed the table prefix in wp-config to "%s".', 'site-cloner' ), $prod_prefix )
+				/* translators: %1$s: staging table prefix; %2$s: production table prefix; %3$s: production table prefix to set manually */
+				: sprintf( __( '⚠️ Prefixes differ (%1$s → %2$s) but wp-config.php could NOT be written. Please set $table_prefix = \'%3$s\'; manually.', 'site-cloner' ), $stag_prefix, $prod_prefix, $prod_prefix );
+		}
+
+		return array(
+			'done'        => true,
+			'statements'  => $stmts,
+			'changed'     => $changed,
+			'prefix_note' => $prefix_note,
+			'new_url'     => $new_url,
+		);
+	}
+
+	/** Import the SQL file (accumulate statements up to the trailing ';' at end of line). */
+	private function import_sql( $mysqli, $file ) {
+		$fh = fopen( $file, 'r' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Chunked stream I/O for multi-GB package files; WP_Filesystem buffers whole files and cannot seek.
+		if ( ! $fh ) {
+			throw new \Exception( esc_html__( 'Could not read database.sql.', 'site-cloner' ) );
+		}
+		mysqli_query( $mysqli, 'SET FOREIGN_KEY_CHECKS=0' ); // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_query -- Streams the bulk import via WP's own mysqli handle ($wpdb->dbh); $wpdb->query buffers all rows and cannot stream a multi-GB dump.
+		$buffer = '';
+		$count  = 0;
+		while ( ( $line = fgets( $fh ) ) !== false ) {
+			$trim = ltrim( $line );
+			if ( '' === trim( $line ) || strpos( $trim, '--' ) === 0 ) {
+				continue;
+			}
+			$buffer .= $line;
+			if ( substr( rtrim( $line ), -1 ) === ';' ) {
+				@mysqli_query( $mysqli, $buffer ); // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_query -- Streams the bulk import via WP's own mysqli handle ($wpdb->dbh); $wpdb->query buffers all rows and cannot stream a multi-GB dump.
+				$buffer = '';
+				$count++;
+			}
+		}
+		fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Chunked stream I/O; see fopen note.
+		mysqli_query( $mysqli, 'SET FOREIGN_KEY_CHECKS=1' ); // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_query -- Streams the bulk import via WP's own mysqli handle ($wpdb->dbh); $wpdb->query buffers all rows and cannot stream a multi-GB dump.
+		return $count;
+	}
+
+	/** Add this plugin to active_plugins in the just-imported DB (using the production prefix). */
+	private function ensure_self_active( $mysqli, $prefix ) {
+		$plugin = 'site-cloner/site-cloner.php';
+		$table  = $prefix . 'options';
+		$res = @mysqli_query( $mysqli, "SELECT option_value FROM `$table` WHERE option_name='active_plugins' LIMIT 1" ); // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_query, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Streams the bulk import via WP's own mysqli handle ($wpdb->dbh); $wpdb->query buffers all rows and cannot stream a multi-GB dump.
+		if ( ! $res ) {
+			return;
+		}
+		$row = mysqli_fetch_assoc( $res ); // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_fetch_assoc -- Streaming fetch on WP's own mysqli handle; see query note.
+		$list = $row ? @unserialize( $row['option_value'] ) : array();
+		if ( ! is_array( $list ) ) {
+			$list = array();
+		}
+		if ( ! in_array( $plugin, $list, true ) ) {
+			$list[] = $plugin;
+		}
+		$val = mysqli_real_escape_string( $mysqli, serialize( $list ) ); // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_real_escape_string -- Escaping via WP's own mysqli handle ($wpdb->dbh).
+		@mysqli_query( $mysqli, "UPDATE `$table` SET option_value='$val' WHERE option_name='active_plugins'" ); // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_query, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Streams the bulk import via WP's own mysqli handle ($wpdb->dbh); $wpdb->query buffers all rows and cannot stream a multi-GB dump.
+	}
+
+	/** Update the $table_prefix line in the staging wp-config.php. */
+	private function update_config_prefix( $prefix ) {
+		$path = ABSPATH . 'wp-config.php';
+		if ( ! wp_is_writable( $path ) ) {
+			return false;
+		}
+		$src = file_get_contents( $path );
+		$new = preg_replace(
+			'/\$table_prefix\s*=\s*[\'"][^\'"]*[\'"]\s*;/',
+			"\$table_prefix = '" . addslashes( $prefix ) . "';",
+			$src,
+			1
+		);
+		if ( $new && $new !== $src ) {
+			return (bool) file_put_contents( $path, $new ); // phpcs:ignore PluginCheck.CodeAnalysis.WriteFile.ABSPATHDetected -- Site restore writes into the WP install root by design; the destination is the site being migrated, not plugin data storage.
+		}
+		return false;
+	}
+}

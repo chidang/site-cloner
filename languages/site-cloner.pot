@@ -1,0 +1,688 @@
+# Copyright (C) 2026 flexatech
+# This file is distributed under the GPL-2.0+.
+msgid ""
+msgstr ""
+"Project-Id-Version: Site Cloner 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/site-cloner\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-07-13T07:04:33+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.10.0\n"
+"X-Domain: site-cloner\n"
+
+#. Plugin Name of the plugin
+#: site-cloner.php
+#: site-cloner.php:65
+#: site-cloner.php:66
+msgid "Site Cloner"
+msgstr ""
+
+#. Description of the plugin
+#: site-cloner.php
+msgid "Creates a package (files + database + installer) to migrate WordPress from production to staging. Runs anywhere, no shell required."
+msgstr ""
+
+#. Author of the plugin
+#: site-cloner.php
+msgid "flexatech"
+msgstr ""
+
+#: includes/class-sd-archive.php:44
+msgid "Could not create the file list."
+msgstr ""
+
+#. translators: %s: zip archive file name
+#. translators: %s: archive part file name
+#: includes/class-sd-archive.php:94
+#: includes/class-sd-importer.php:100
+#: includes/class-sd-importer.php:174
+msgid "Could not open %s"
+msgstr ""
+
+#: includes/class-sd-database.php:85
+msgid "Could not write to the SQL file."
+msgstr ""
+
+#: includes/class-sd-health.php:20
+msgid "PHP ≥ 7.4 is recommended"
+msgstr ""
+
+#: includes/class-sd-health.php:24
+#: includes/class-sd-health.php:27
+#: includes/class-sd-health.php:30
+#: includes/class-sd-health.php:33
+#: includes/class-sd-health.php:36
+msgid "present"
+msgstr ""
+
+#: includes/class-sd-health.php:24
+#: includes/class-sd-health.php:27
+#: includes/class-sd-health.php:30
+#: includes/class-sd-health.php:33
+#: includes/class-sd-health.php:36
+msgid "missing"
+msgstr ""
+
+#: includes/class-sd-health.php:24
+msgid "Required to import the database"
+msgstr ""
+
+#: includes/class-sd-health.php:27
+msgid "Required to compress/extract"
+msgstr ""
+
+#: includes/class-sd-health.php:30
+msgid "Needed for \"Pull from production\""
+msgstr ""
+
+#: includes/class-sd-health.php:33
+msgid "Needed for HTTPS"
+msgstr ""
+
+#: includes/class-sd-health.php:36
+msgid "Generates security tokens"
+msgstr ""
+
+#: includes/class-sd-health.php:42
+msgid "sd-packages directory is writable"
+msgstr ""
+
+#: includes/class-sd-health.php:42
+msgid "Where packages are stored/downloaded"
+msgstr ""
+
+#. translators: %d: max_execution_time in seconds
+#: includes/class-sd-health.php:46
+msgid "%ds"
+msgstr ""
+
+#. translators: %d: max_execution_time in seconds
+#: includes/class-sd-health.php:46
+msgid "0 (unlimited)"
+msgstr ""
+
+#. translators: %d: max_execution_time in seconds
+#: includes/class-sd-health.php:46
+msgid "A low value can time out during a single-pass import"
+msgstr ""
+
+#: includes/class-sd-health.php:54
+msgid "max upload size"
+msgstr ""
+
+#: includes/class-sd-health.php:54
+msgid "Does not affect the \"pull by link\" flow"
+msgstr ""
+
+#: includes/class-sd-health.php:58
+msgid "wp-config.php is writable"
+msgstr ""
+
+#: includes/class-sd-health.php:58
+#: includes/class-sd-health.php:62
+msgid "yes"
+msgstr ""
+
+#: includes/class-sd-health.php:58
+#: includes/class-sd-health.php:62
+msgid "no"
+msgstr ""
+
+#: includes/class-sd-health.php:58
+msgid "Needed when changing the table prefix"
+msgstr ""
+
+#: includes/class-sd-health.php:62
+msgid "Optional — without it, export still runs via PHP"
+msgstr ""
+
+#: includes/class-sd-health.php:67
+msgid "Free disk space"
+msgstr ""
+
+#: includes/class-sd-health.php:106
+msgid "System check"
+msgstr ""
+
+#. translators: %d: number of items that need attention
+#: includes/class-sd-health.php:109
+msgid "%d item needs attention"
+msgid_plural "%d items need attention"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/class-sd-health.php:111
+msgid "OK"
+msgstr ""
+
+#: includes/class-sd-importer.php:66
+#: includes/class-sd-package.php:23
+msgid "Invalid package ID."
+msgstr ""
+
+#: includes/class-sd-importer.php:71
+msgid "Could not read the package manifest."
+msgstr ""
+
+#. translators: %s: archive part file name
+#: includes/class-sd-importer.php:95
+msgid "Missing archive part: %s"
+msgstr ""
+
+#: includes/class-sd-importer.php:163
+msgid "Invalid archive part name."
+msgstr ""
+
+#. translators: %s: archive part file name
+#: includes/class-sd-importer.php:168
+msgid "Archive part not found: %s"
+msgstr ""
+
+#. translators: %s: table prefix
+#: includes/class-sd-importer.php:240
+msgid "Changed the table prefix in wp-config to \"%s\"."
+msgstr ""
+
+#. translators: %1$s: staging table prefix; %2$s: production table prefix; %3$s: production table prefix to set manually
+#: includes/class-sd-importer.php:242
+msgid "⚠️ Prefixes differ (%1$s → %2$s) but wp-config.php could NOT be written. Please set $table_prefix = '%3$s'; manually."
+msgstr ""
+
+#: includes/class-sd-importer.php:258
+msgid "Could not read database.sql."
+msgstr ""
+
+#: includes/class-sd-package.php:37
+msgid "Package not found."
+msgstr ""
+
+#: includes/class-sd-pull.php:33
+msgid "Invalid ID."
+msgstr ""
+
+#: includes/class-sd-pull.php:38
+msgid "Package does not exist or sharing is not enabled."
+msgstr ""
+
+#: includes/class-sd-pull.php:41
+msgid "Invalid token."
+msgstr ""
+
+#: includes/class-sd-pull.php:47
+msgid "The link has expired — please create a new package on production."
+msgstr ""
+
+#: includes/class-sd-pull.php:55
+#: includes/class-sd-pull.php:274
+msgid "This package is password-protected — please enter the password."
+msgstr ""
+
+#: includes/class-sd-pull.php:58
+msgid "Incorrect password."
+msgstr ""
+
+#. translators: %s: calling IP address
+#: includes/class-sd-pull.php:68
+msgid "IP %s is not in the allowlist. Add this IP to the \"IP restriction\" field when creating the package on production."
+msgstr ""
+
+#: includes/class-sd-pull.php:119
+msgid "Invalid file."
+msgstr ""
+
+#: includes/class-sd-pull.php:124
+msgid "Invalid action."
+msgstr ""
+
+#. translators: %s: underlying error message
+#: includes/class-sd-pull.php:215
+msgid "SSL error while calling production (%s). If production is a local/self-signed site (.test, .local…), enable \"Skip SSL verification\" and try again."
+msgstr ""
+
+#. translators: %s: underlying error message
+#: includes/class-sd-pull.php:218
+msgid "Could not reach production: %s"
+msgstr ""
+
+#: includes/class-sd-pull.php:227
+msgid "Invalid link (missing http/https or the sd_pull parameter)."
+msgstr ""
+
+#. translators: %s: underlying error message
+#: includes/class-sd-pull.php:243
+msgid "Still could not connect even with SSL verification off: %s"
+msgstr ""
+
+#: includes/class-sd-pull.php:267
+msgid "Connected, but the certificate is invalid (self-signed?). \"Skip SSL verification\" will be enabled automatically."
+msgstr ""
+
+#: includes/class-sd-pull.php:268
+msgid "Connection OK, token valid."
+msgstr ""
+
+#. translators: %s: error message returned by production
+#: includes/class-sd-pull.php:279
+msgid "Production returned an error: %s (check the token/link)."
+msgstr ""
+
+#. translators: %s: HTTP response code
+#: includes/class-sd-pull.php:283
+msgid "HTTP %s — invalid response."
+msgstr ""
+
+#: includes/class-sd-pull.php:289
+#: includes/class-sd-pull.php:331
+#: includes/class-sd-pull.php:358
+msgid "Invalid link."
+msgstr ""
+
+#. translators: %s: HTTP response code
+#: includes/class-sd-pull.php:300
+msgid "Production returned an error (%s). Check the link/token/password."
+msgstr ""
+
+#: includes/class-sd-pull.php:305
+msgid "Invalid package data."
+msgstr ""
+
+#: includes/class-sd-pull.php:340
+msgid "Removed the plugin from the source site."
+msgstr ""
+
+#: includes/class-sd-pull.php:342
+msgid "Could not uninstall (check the token/password/IP)."
+msgstr ""
+
+#: includes/class-sd-pull.php:362
+msgid "Invalid file name."
+msgstr ""
+
+#. translators: %s: HTTP response code
+#: includes/class-sd-pull.php:380
+msgid "Production returned an error during download (%s)."
+msgstr ""
+
+#: includes/class-sd-pull.php:389
+msgid "Could not write the local file."
+msgstr ""
+
+#: site-cloner.php:72
+msgid "Site Cloner – Import"
+msgstr ""
+
+#: site-cloner.php:73
+msgid "Site Cloner Import"
+msgstr ""
+
+#: site-cloner.php:106
+msgid "Permission denied."
+msgstr ""
+
+#: templates/admin-page.php:6
+msgid "Create a package to migrate this site to staging. Includes"
+msgstr ""
+
+#: templates/admin-page.php:12
+msgid "Protection password (optional):"
+msgstr ""
+
+#: templates/admin-page.php:13
+msgid "Leave empty if not needed"
+msgstr ""
+
+#: templates/admin-page.php:14
+msgid "If set, the staging side must enter this password to pull the package (send it to them through a private channel, don't include it in the link)."
+msgstr ""
+
+#: templates/admin-page.php:17
+msgid "IP restriction (optional):"
+msgstr ""
+
+#: templates/admin-page.php:18
+msgid "e.g. 203.0.113.5, 203.0.113.6"
+msgstr ""
+
+#: templates/admin-page.php:19
+msgid "Only these IPs can pull the package. Leave empty = no restriction. Don't know the destination server's IP yet? Leave it empty, click Test connection on the destination side, and it will report the IP for you to add here."
+msgstr ""
+
+#: templates/admin-page.php:21
+msgid "Create Package"
+msgstr ""
+
+#: templates/admin-page.php:25
+msgid "Database"
+msgstr ""
+
+#: templates/admin-page.php:29
+msgid "Files"
+msgstr ""
+
+#: templates/admin-page.php:32
+msgid "Initializing…"
+msgstr ""
+
+#: templates/admin-page.php:36
+msgid "Package is ready"
+msgstr ""
+
+#: templates/admin-page.php:39
+msgid "Fastest way — no upload/download needed:"
+msgstr ""
+
+#: templates/admin-page.php:40
+msgid "Install this plugin on staging, go to"
+msgstr ""
+
+#: templates/admin-page.php:40
+msgid "paste the link below and click run:"
+msgstr ""
+
+#: templates/admin-page.php:43
+msgid "Copy"
+msgstr ""
+
+#: templates/admin-page.php:45
+msgid "The link contains a token that grants access to the package. Only share it with people you trust; delete the package after the migration is done."
+msgstr ""
+
+#: templates/admin-page.php:49
+msgid "Or download the files manually (empty staging / can't connect)"
+msgstr ""
+
+#: templates/admin-page.php:51
+msgid "Download all files, then use"
+msgstr ""
+
+#: templates/admin-page.php:51
+msgid "on staging."
+msgstr ""
+
+#: templates/import-page.php:6
+msgid "Site Cloner – Import (Staging)"
+msgstr ""
+
+#: templates/import-page.php:9
+msgid "Warning:"
+msgstr ""
+
+#: templates/import-page.php:9
+msgid "this operation will"
+msgstr ""
+
+#: templates/import-page.php:9
+msgid "overwrite all files + the database"
+msgstr ""
+
+#: templates/import-page.php:9
+msgid "of this staging site."
+msgstr ""
+
+#: templates/import-page.php:10
+msgid "You may be logged out once it's done (because the users table now holds production's data) — log back in using a production account."
+msgstr ""
+
+#: templates/import-page.php:16
+msgid "Pull from production via link"
+msgstr ""
+
+#: templates/import-page.php:17
+msgid "Paste the link generated by the"
+msgstr ""
+
+#: templates/import-page.php:17
+msgid "page on production. Staging will download the package and migrate automatically — no manual upload needed."
+msgstr ""
+
+#: templates/import-page.php:20
+#: assets/admin.js:179
+#: assets/admin.js:197
+msgid "Test connection"
+msgstr ""
+
+#: templates/import-page.php:24
+msgid "Password (if the package has one)"
+msgstr ""
+
+#: templates/import-page.php:27
+msgid "Skip SSL verification (only for local/self-signed production:"
+msgstr ""
+
+#: templates/import-page.php:30
+#: templates/import-page.php:56
+msgid "I understand staging will be completely overwritten."
+msgstr ""
+
+#: templates/import-page.php:32
+msgid "Pull &amp; Migrate"
+msgstr ""
+
+#: templates/import-page.php:36
+msgid "Or select a package already on staging"
+msgstr ""
+
+#: templates/import-page.php:37
+msgid "Copy the package folder into"
+msgstr ""
+
+#: templates/import-page.php:37
+msgid "(via FTP/File Manager), then reload this page."
+msgstr ""
+
+#: templates/import-page.php:39
+msgid "No packages found in"
+msgstr ""
+
+#: templates/import-page.php:42
+msgid "Package"
+msgstr ""
+
+#: templates/import-page.php:42
+msgid "Source site"
+msgstr ""
+
+#: templates/import-page.php:42
+msgid "Created"
+msgstr ""
+
+#: templates/import-page.php:42
+msgid "Size"
+msgstr ""
+
+#: templates/import-page.php:58
+msgid "Run Migrate"
+msgstr ""
+
+#: templates/import-page.php:65
+msgid "Downloading package from production"
+msgstr ""
+
+#: templates/import-page.php:69
+msgid "Extracting files"
+msgstr ""
+
+#: templates/import-page.php:73
+msgid "Import database + search-replace"
+msgstr ""
+
+#: templates/import-page.php:80
+msgid "Migration complete"
+msgstr ""
+
+#: templates/import-page.php:82
+msgid "Open wp-admin (log back in if needed)"
+msgstr ""
+
+#: templates/import-page.php:84
+msgid "Remove plugin from the source site"
+msgstr ""
+
+#: assets/admin.js:22
+#: assets/admin.js:129
+msgid "An error occurred."
+msgstr ""
+
+#: assets/admin.js:32
+msgid "Database: using mysqldump (fast)…"
+msgstr ""
+
+#: assets/admin.js:36
+#: assets/admin.js:76
+#: assets/admin.js:280
+msgid "Server connection error."
+msgstr ""
+
+#: assets/admin.js:47
+msgid "Scanning site…"
+msgstr ""
+
+#. translators: %d: number of database tables.
+#: assets/admin.js:55
+msgid "Exporting database (%d table)…"
+msgid_plural "Exporting database (%d tables)…"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: number of files.
+#: assets/admin.js:62
+msgid "Compressing files (%d file)…"
+msgid_plural "Compressing files (%d files)…"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/admin.js:66
+#: assets/admin.js:310
+msgid "Finalizing…"
+msgstr ""
+
+#: assets/admin.js:72
+#: assets/admin.js:316
+msgid "Error while finalizing."
+msgstr ""
+
+#: assets/admin.js:89
+msgid "The package is password-protected. Send the password to the importer through a separate channel (don't paste it alongside the link)."
+msgstr ""
+
+#: assets/admin.js:108
+msgid "Copied!"
+msgstr ""
+
+#: assets/admin.js:157
+#: assets/admin.js:262
+msgid "Preparing…"
+msgstr ""
+
+#: assets/admin.js:173
+msgid "Testing…"
+msgstr ""
+
+#: assets/admin.js:175
+msgid "Contacting production…"
+msgstr ""
+
+#. translators: 1: status message from production, 2: number of files, 3: human-readable size.
+#: assets/admin.js:189
+msgid "%1$s — %2$d file, %3$s."
+msgid_plural "%1$s — %2$d files, %3$s."
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/admin.js:198
+#: assets/admin.js:231
+msgid "Connection error to staging."
+msgstr ""
+
+#: assets/admin.js:211
+msgid "Fetching package info from production…"
+msgstr ""
+
+#. translators: 1: number of files, 2: human-readable total size.
+#: assets/admin.js:221
+msgid "Downloading %1$d file (%2$s)…"
+msgid_plural "Downloading %1$d files (%2$s)…"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: file name.
+#: assets/admin.js:252
+msgid "Error while downloading %s."
+msgstr ""
+
+#. translators: 1: number of files, 2: number of parts.
+#: assets/admin.js:272
+msgid "Extracting %1$d files (%2$d parts)…"
+msgstr ""
+
+#: assets/admin.js:300
+msgid "Error while extracting."
+msgstr ""
+
+#: assets/admin.js:306
+msgid "Importing database in chunks…"
+msgstr ""
+
+#: assets/admin.js:308
+msgid "Running search-replace in chunks…"
+msgstr ""
+
+#: assets/admin.js:313
+msgid "Finalize error."
+msgstr ""
+
+#. translators: %s: error message reported by the runner.
+#: assets/admin.js:328
+msgid "Runner reported an error (%s) — switching to single-request import…"
+msgstr ""
+
+#: assets/admin.js:333
+msgid "Runner error."
+msgstr ""
+
+#: assets/admin.js:344
+msgid "Runner couldn't run — switching to single-request database import…"
+msgstr ""
+
+#. translators: 1: runner phase, 2: HTTP status code, 3: extra detail (may be empty).
+#: assets/admin.js:356
+msgid "Runner error (%1$s) — HTTP %2$s%3$s"
+msgstr ""
+
+#: assets/admin.js:363
+msgid "Importing database + search-replace (single request, don't reload the page)…"
+msgstr ""
+
+#: assets/admin.js:369
+msgid "Error while importing database (may time out on large sites)."
+msgstr ""
+
+#. translators: 1: number of SQL statements, 2: number of updated data cells.
+#: assets/admin.js:377
+msgid "Imported %1$d statements, updated %2$d data cells."
+msgstr ""
+
+#: assets/admin.js:388
+msgid "Removing…"
+msgstr ""
+
+#: assets/admin.js:393
+msgid "Removed"
+msgstr ""
+
+#: assets/admin.js:396
+#: assets/admin.js:401
+msgid "Remove plugin from source site"
+msgstr ""
+
+#: assets/admin.js:397
+msgid "Could not remove."
+msgstr ""
+
+#: assets/admin.js:402
+msgid "Connection error."
+msgstr ""

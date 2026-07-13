@@ -1,0 +1,79 @@
+=== Site Cloner ===
+Contributors: flexatech
+Tags: migration, staging, clone, backup, duplicate
+Requires at least: 5.0
+Tested up to: 7.0
+Requires PHP: 7.0
+Stable tag: 1.0.0
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+Migrate WordPress from production to staging with no shell access. Creates a package (files + database + installer) that runs anywhere.
+
+== Description ==
+
+Site Cloner migrates a WordPress site from **production to staging**. It builds a package made of one or more `archive-*.zip` files (site files, split automatically), a `database.sql` dump, and a standalone `installer.php`. It works whether staging is on the same server or a different one, and **requires no shell/SSH access** — everything runs through the WordPress admin over regular HTTP.
+
+**Key features**
+
+* **Chunked build** — the database is exported in chunks (using `mysqldump` when available, otherwise pure PHP) and files are compressed in chunks to avoid timeouts.
+* **Three ways to deploy to staging** — pull-by-link, wp-admin import, or a standalone installer for empty sites.
+* **Serialize-safe search-replace** — URLs are updated with a recursive unserialize → replace → re-serialize algorithm, so serialized options/widgets never get corrupted.
+* **Handles very large sites** — files are split into ~200MB archive parts, and a standalone runner imports the database by byte-offset with keyset-paginated search-replace, so multi-GB databases don't hit `max_execution_time`.
+* **Token-protected transfers** — pull links carry an SHA-256 hashed token (only the hash is stored on the server), with optional password and IP allowlist restrictions.
+
+**Deployment methods**
+
+*Method A — Pull via link (simplest):* Install the plugin on both production and staging. Build the package on production, copy the link, paste it on staging under Tools → Site Cloner Import, and click Pull & Migrate. Staging downloads the files from production (byte-range supported) and runs extraction, DB import, and search-replace on its own.
+
+*Method B — wp-admin import:* Copy the package folder to staging's `wp-content/sd-packages/`, then run the migration from Tools → Site Cloner Import.
+
+*Method C — Standalone installer:* For an empty staging site with no WordPress. Upload `installer.php` and the package files to the site root, open `installer.php` in a browser, enter the database details, and start the migration.
+
+== Installation ==
+
+1. Upload the `site-cloner` folder to `/wp-content/plugins/` on the **production** site (or install it through Plugins → Add New → Upload Plugin).
+2. Activate the plugin through the **Plugins** menu in WordPress.
+3. Go to **Tools → Site Cloner** to build a package.
+4. To deploy via link or wp-admin import, install and activate the plugin on the **staging** site as well, then use **Tools → Site Cloner Import**.
+
+== Frequently Asked Questions ==
+
+= Does it require SSH or WP-CLI? =
+
+No. The whole build and import process runs inside the WordPress admin over normal HTTP requests.
+
+= Will I get logged out after importing on staging? =
+
+Possibly. After the database is overwritten, the users table belongs to production, so you may need to log back in with a production account.
+
+= Does it handle multi-gigabyte databases? =
+
+Yes. When staging allows it, the plugin installs a standalone runner that imports the database by byte-offset and runs search-replace with keyset pagination, keeping each request short. If the runner can't be written, it falls back to a single-request import suitable for small and medium sites.
+
+= Is the transfer secure? =
+
+Pull links carry an SHA-256 hashed token — only the hash is stored on production, and the real token stays in the link. You can additionally protect a package with a password and restrict it to specific IP addresses. Always delete the package after the migration is complete.
+
+= What happens to my staging site? =
+
+Staging is **completely overwritten** (files and database). Only use it with a staging site you can safely throw away.
+
+= Is it translation-ready? =
+
+Yes. All admin-facing strings (PHP and JavaScript) are internationalized under the `site-cloner` text domain, and a `languages/site-cloner.pot` template is included.
+
+== Screenshots ==
+
+1. Build a migration package on the production site (Tools → Site Cloner).
+2. Import or pull the package on staging (Tools → Site Cloner Import).
+
+== Changelog ==
+
+= 1.0.0 =
+* Initial release.
+
+== Upgrade Notice ==
+
+= 1.0.0 =
+Initial release.
