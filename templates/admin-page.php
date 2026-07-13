@@ -52,9 +52,12 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 			<details class="sd-manual">
 				<summary><?php esc_html_e( "Or download the files manually (empty staging / can't connect)", 'site-cloner' ); ?></summary>
-				<p><button type="button" id="sd-dl-all" class="button button-primary"><?php esc_html_e( 'Download all files', 'site-cloner' ); ?></button></p>
+				<p>
+					<a id="sd-dl-package" class="button button-primary" href="#" download>⬇ <?php esc_html_e( 'Download the whole package (.zip)', 'site-cloner' ); ?></a>
+					<button type="button" id="sd-dl-all" class="button"><?php esc_html_e( 'Download files separately', 'site-cloner' ); ?></button>
+				</p>
+				<p class="description"><?php esc_html_e( 'The single .zip bundles every file; unzip it on staging, then run', 'site-cloner' ); ?> <code>installer.php</code>.</p>
 				<ul class="sd-files"></ul>
-				<p class="description"><?php esc_html_e( 'Download all files, then use', 'site-cloner' ); ?> <code>installer.php</code> <?php esc_html_e( 'on staging.', 'site-cloner' ); ?></p>
 			</details>
 		</div>
 
@@ -74,7 +77,10 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 				</div>
 
 				<p class="sd-pkg-actions">
-					<button type="button" class="button button-primary sd-pkg-dlall"><?php esc_html_e( 'Download all files', 'site-cloner' ); ?></button>
+					<?php if ( ! empty( $sd_pkg['files']['package'] ) ) : ?>
+						<a class="button button-primary sd-pkg-dlpackage" href="<?php echo esc_url( $sd_pkg['files']['package'] ); ?>" download>⬇ <?php esc_html_e( 'Download package (.zip)', 'site-cloner' ); ?></a>
+					<?php endif; ?>
+					<button type="button" class="button sd-pkg-dlall"><?php esc_html_e( 'Download files separately', 'site-cloner' ); ?></button>
 					<?php if ( $sd_pkg['has_token'] ) : ?>
 						<button type="button" class="button sd-pkg-link"><?php esc_html_e( 'Get pull link', 'site-cloner' ); ?></button>
 					<?php endif; ?>

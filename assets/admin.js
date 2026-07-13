@@ -90,6 +90,11 @@
 			$box.append($('<p class="sd-pass-note" style="color:#b26b00;margin-top:8px;"></p>')
 				.text('🔒 ' + __('The package is password-protected. Send the password to the importer through a separate channel (don\'t paste it alongside the link).', 'site-cloner')));
 		}
+		if (files.package) {
+			$('#sd-dl-package').attr('href', files.package).show();
+		} else {
+			$('#sd-dl-package').hide();
+		}
 		var $ul = $('#sd-result .sd-files').empty();
 		if (files.installer) { $ul.append(link(files.installer, 'installer.php')); }
 		(files.archives || []).forEach(function (url) {

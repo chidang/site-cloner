@@ -26,6 +26,7 @@ define( 'FLEXA_PACKAGE_URL', wp_upload_dir()['baseurl'] . '/sd-packages' );
 
 require_once FLEXA_PATH . 'includes/class-sd-database.php';
 require_once FLEXA_PATH . 'includes/class-sd-archive.php';
+require_once FLEXA_PATH . 'includes/class-sd-zipstream.php';
 require_once FLEXA_PATH . 'includes/class-sd-package.php';
 require_once FLEXA_PATH . 'includes/class-sd-replace.php';
 require_once FLEXA_PATH . 'includes/class-sd-importer.php';
@@ -49,6 +50,7 @@ class Plugin {
 		add_action( 'wp_ajax_sd_regen_link', array( $this, 'ajax_regen_link' ) );
 		add_action( 'wp_ajax_sd_delete_pkg', array( $this, 'ajax_delete_pkg' ) );
 		add_action( 'wp_ajax_sd_installer',  array( $this, 'ajax_installer' ) );
+		add_action( 'wp_ajax_sd_package_zip', array( $this, 'ajax_download_package' ) );
 
 		// Import on the staging side.
 		add_action( 'wp_ajax_sd_import_prepare', array( $this, 'ajax_import_prepare' ) );
@@ -230,6 +232,33 @@ class Plugin {
 		header( 'Content-Length: ' . filesize( $file ) );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents, WordPress.Security.EscapeOutput.OutputNotEscaped -- Streaming the raw installer.php bytes as an octet-stream download; escaping/WP_Filesystem would corrupt the file.
 		echo file_get_contents( $file );
+		exit;
+	}
+
+	/**
+	 * Bundle a whole package (installer.php + archive parts + database.sql +
+	 * manifest.json) into one streamed .zip so the user can download it once and
+	 * unzip locally, instead of grabbing every file separately.
+	 */
+	public function ajax_download_package() {
+		$this->guard();
+		$id = sanitize_text_field( wp_unslash( $_REQUEST['package'] ?? '' ) );
+		if ( ! preg_match( '/^[A-Za-z0-9_]+$/', $id ) ) {
+			wp_die( esc_html__( 'Invalid package.', 'site-cloner' ), '', array( 'response' => 400 ) );
+		}
+		$dir = FLEXA_PACKAGE_DIR . '/' . $id;
+		if ( ! is_dir( $dir ) ) {
+			wp_die( esc_html__( 'Package not found.', 'site-cloner' ), '', array( 'response' => 404 ) );
+		}
+		// Ship the migration files only; skip internal token/state/hidden files.
+		$skip    = array( 'sd-state.json', 'sd-token.hash', 'pull-token.hash', 'pull-pass.hash', 'pull-meta.json', '.htaccess' );
+		$entries = array();
+		foreach ( glob( $dir . '/*' ) as $f ) {
+			if ( is_file( $f ) && ! in_array( basename( $f ), $skip, true ) ) {
+				$entries[] = array( 'path' => $f, 'name' => basename( $f ) );
+			}
+		}
+		Zip_Stream::stream( $entries, 'site-cloner-' . $id . '.zip' );
 		exit;
 	}
 

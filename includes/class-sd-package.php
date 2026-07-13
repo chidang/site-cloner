@@ -176,6 +176,7 @@ class Package {
 			'pull_link' => $pull_link,
 			'has_pass'  => $has_pass,
 			'files'     => array(
+				'package'   => self::package_download_url( $this->id ),
 				'installer' => self::installer_download_url( $this->id ),
 				'archives'  => $archive_urls,
 				'database'  => $base . '/database.sql',
@@ -195,6 +196,23 @@ class Package {
 		return add_query_arg(
 			array(
 				'action'  => 'sd_installer',
+				'package' => rawurlencode( $id ),
+				'nonce'   => wp_create_nonce( 'sd_build' ),
+			),
+			admin_url( 'admin-ajax.php' )
+		);
+	}
+
+	/**
+	 * URL that bundles the whole package (installer.php + archive parts +
+	 * database.sql + manifest.json) into a single streamed .zip, so the user
+	 * downloads once and unzips locally. Routed through admin-ajax because the
+	 * package folder also contains a PHP file that direct URLs would block.
+	 */
+	public static function package_download_url( $id ) {
+		return add_query_arg(
+			array(
+				'action'  => 'sd_package_zip',
 				'package' => rawurlencode( $id ),
 				'nonce'   => wp_create_nonce( 'sd_build' ),
 			),
@@ -234,7 +252,7 @@ class Package {
 				$size      += (int) @filesize( $az );
 			}
 
-			$files = array( 'archives' => $archives );
+			$files = array( 'package' => self::package_download_url( $id ), 'archives' => $archives );
 			if ( file_exists( "$dir/installer.php" ) ) { $files['installer'] = self::installer_download_url( $id ); }
 			if ( file_exists( "$dir/database.sql" ) )  { $files['database']  = $base . '/database.sql'; }
 			$files['manifest'] = $base . '/manifest.json';
