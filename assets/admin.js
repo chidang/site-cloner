@@ -111,6 +111,92 @@
 		try { document.execCommand('copy'); $(this).text(__('Copied!', 'site-cloner')); } catch (e) {}
 	});
 
+	// Trigger every download link one after another (staggered so the browser
+	// doesn't drop the queued downloads), so the user gets all parts in a single
+	// click instead of clicking each file.
+	function downloadSeq(links, $btn) {
+		if (!links.length) { return; }
+		var origText = $btn.text();
+		$btn.prop('disabled', true);
+		var i = 0;
+		(function next() {
+			if (i >= links.length) {
+				$btn.prop('disabled', false).text(origText);
+				return;
+			}
+			var src = links[i];
+			i++;
+			$btn.text(sprintf(
+				/* translators: 1: current file number, 2: total number of files. */
+				__('Downloading %1$d/%2$d…', 'site-cloner'), i, links.length
+			));
+			var a = document.createElement('a');
+			a.href = src.href;
+			a.download = src.getAttribute('download') || '';
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			setTimeout(next, 800);
+		})();
+	}
+
+	$(document).on('click', '#sd-dl-all', function () {
+		downloadSeq($('#sd-result .sd-files a[download]').toArray(), $(this));
+	});
+
+	/* ---------- Existing packages (re-shown after reload) ---------- */
+
+	$(document).on('click', '.sd-pkg-dlall', function () {
+		downloadSeq($(this).closest('.sd-pkg').find('.sd-files a[download]').toArray(), $(this));
+	});
+
+	$(document).on('click', '.sd-pkg-link', function () {
+		var $pkg = $(this).closest('.sd-pkg');
+		var $btn = $(this).prop('disabled', true);
+		post('sd_regen_link', { package: $pkg.data('id') })
+			.done(function (r) {
+				$btn.prop('disabled', false);
+				if (r && r.success) {
+					$pkg.find('.sd-pkg-linkrow').show().find('.sd-pkg-linkinput').val(r.data.pull_link);
+					$pkg.find('.sd-pkg-linknote').show();
+				} else {
+					window.alert((r && r.data && r.data.message) || __('An error occurred.', 'site-cloner'));
+				}
+			})
+			.fail(function () {
+				$btn.prop('disabled', false);
+				window.alert(__('Server connection error.', 'site-cloner'));
+			});
+	});
+
+	$(document).on('click', '.sd-pkg-linkcopy', function () {
+		var el = $(this).closest('.sd-pkg-linkrow').find('.sd-pkg-linkinput')[0];
+		if (!el) { return; }
+		el.select(); el.setSelectionRange(0, 99999);
+		try { document.execCommand('copy'); $(this).text(__('Copied!', 'site-cloner')); } catch (e) {}
+	});
+
+	$(document).on('click', '.sd-pkg-delete', function () {
+		if (!window.confirm(__('Delete this package permanently? Its files will no longer be available for download.', 'site-cloner'))) {
+			return;
+		}
+		var $pkg = $(this).closest('.sd-pkg');
+		var $btn = $(this).prop('disabled', true);
+		post('sd_delete_pkg', { package: $pkg.data('id') })
+			.done(function (r) {
+				if (r && r.success) {
+					$pkg.slideUp(200, function () { $pkg.remove(); });
+				} else {
+					$btn.prop('disabled', false);
+					window.alert((r && r.data && r.data.message) || __('An error occurred.', 'site-cloner'));
+				}
+			})
+			.fail(function () {
+				$btn.prop('disabled', false);
+				window.alert(__('Server connection error.', 'site-cloner'));
+			});
+	});
+
 	/* ---------------- Import (staging) ---------------- */
 
 	var impPkg = null;

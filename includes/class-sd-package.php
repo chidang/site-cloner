@@ -184,4 +184,101 @@ class Package {
 			'dir'       => $this->dir,
 		);
 	}
+
+	/** Validate an id and return a package handle without requiring state.json. */
+	public static function for_id( $id ) {
+		if ( ! preg_match( '/^[A-Za-z0-9_]+$/', $id ) ) {
+			throw new \Exception( esc_html__( 'Invalid package ID.', 'site-cloner' ) );
+		}
+		return new self( $id );
+	}
+
+	/**
+	 * List finished packages on this (production) side, with manual-download URLs,
+	 * so the admin page can re-display them after a reload.
+	 */
+	public static function list_all() {
+		$out = array();
+		if ( ! is_dir( FLEXA_PACKAGE_DIR ) ) {
+			return $out;
+		}
+		foreach ( glob( FLEXA_PACKAGE_DIR . '/*', GLOB_ONLYDIR ) as $dir ) {
+			if ( ! file_exists( "$dir/manifest.json" ) ) {
+				continue;
+			}
+			$id   = basename( $dir );
+			$base = FLEXA_PACKAGE_URL . '/' . $id;
+			$m    = json_decode( @file_get_contents( "$dir/manifest.json" ), true );
+
+			$archives = array();
+			$size     = (int) @filesize( "$dir/database.sql" );
+			foreach ( glob( "$dir/archive*.zip" ) as $az ) {
+				$archives[] = $base . '/' . basename( $az );
+				$size      += (int) @filesize( $az );
+			}
+
+			$files = array( 'archives' => $archives );
+			if ( file_exists( "$dir/installer.php" ) ) { $files['installer'] = $base . '/installer.php'; }
+			if ( file_exists( "$dir/database.sql" ) )  { $files['database']  = $base . '/database.sql'; }
+			$files['manifest'] = $base . '/manifest.json';
+
+			$out[] = array(
+				'id'        => $id,
+				'site_url'  => isset( $m['site_url'] ) ? $m['site_url'] : '',
+				'created'   => isset( $m['created'] ) ? $m['created'] : '',
+				'size'      => size_format( $size ),
+				'files'     => $files,
+				'has_token' => file_exists( "$dir/pull-token.hash" ),
+				'has_pass'  => file_exists( "$dir/pull-pass.hash" ),
+			);
+		}
+		// Newest first (ids are timestamp-prefixed).
+		usort( $out, function ( $a, $b ) {
+			return strcmp( $b['id'], $a['id'] );
+		} );
+		return $out;
+	}
+
+	/**
+	 * Mint a fresh pull token and return a new link. The raw token is shown only
+	 * once (only its hash is stored), so a lost link cannot be recovered — it is
+	 * regenerated, which invalidates any previously shared link for this package.
+	 */
+	public function regenerate_link() {
+		if ( ! is_dir( $this->dir ) ) {
+			throw new \Exception( esc_html__( 'Package not found.', 'site-cloner' ) );
+		}
+		$token = bin2hex( random_bytes( 32 ) );
+		file_put_contents( $this->dir . '/pull-token.hash', hash( 'sha256', $token ) );
+
+		$meta = json_decode( @file_get_contents( $this->dir . '/pull-meta.json' ), true );
+		if ( ! is_array( $meta ) ) {
+			$meta = array( 'allow_ips' => array() );
+		}
+		$meta['created'] = time();
+		$meta['expires'] = time() + 48 * 3600;
+		file_put_contents( $this->dir . '/pull-meta.json', wp_json_encode( $meta ) );
+
+		return trailingslashit( home_url() ) . '?sd_pull=' . rawurlencode( $this->id ) . '&key=' . $token;
+	}
+
+	/** Delete this package directory (removes the sensitive DB dump + archives). */
+	public function delete() {
+		if ( ! is_dir( $this->dir ) ) {
+			return;
+		}
+		foreach ( (array) glob( $this->dir . '/*' ) as $item ) {
+			if ( is_file( $item ) ) {
+				wp_delete_file( $item );
+			}
+		}
+		// Hidden dot-files written into the package dir (index.php is caught above; .htaccess/.filelist are not).
+		foreach ( array( '.htaccess', '.filelist' ) as $hidden ) {
+			if ( is_file( $this->dir . '/' . $hidden ) ) {
+				wp_delete_file( $this->dir . '/' . $hidden );
+			}
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Removing the now-empty package working directory; WP_Filesystem needs FS credentials unavailable in this AJAX context.
+		@rmdir( $this->dir );
+	}
 }

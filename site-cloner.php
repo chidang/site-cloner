@@ -47,6 +47,10 @@ class Plugin {
 		add_action( 'wp_ajax_sd_build_files',    array( $this, 'ajax_files' ) );
 		add_action( 'wp_ajax_sd_build_finalize', array( $this, 'ajax_finalize' ) );
 
+		// Manage packages already built on this site (re-shown after a reload).
+		add_action( 'wp_ajax_sd_regen_link', array( $this, 'ajax_regen_link' ) );
+		add_action( 'wp_ajax_sd_delete_pkg', array( $this, 'ajax_delete_pkg' ) );
+
 		// Import on the staging side.
 		add_action( 'wp_ajax_sd_import_prepare', array( $this, 'ajax_import_prepare' ) );
 		add_action( 'wp_ajax_sd_import_extract', array( $this, 'ajax_import_extract' ) );
@@ -101,6 +105,7 @@ class Plugin {
 	}
 
 	public function render_page() {
+		$packages = Package::list_all();
 		require FLEXA_PATH . 'templates/admin-page.php';
 	}
 
@@ -177,6 +182,30 @@ class Plugin {
 			$pkg   = Package::load( $id );
 			$state = $pkg->finalize( $pwd, $allow );
 			wp_send_json_success( $state );
+		} catch ( \Exception $e ) {
+			wp_send_json_error( array( 'message' => $e->getMessage() ) );
+		}
+	}
+
+	/** Mint a fresh pull link for an existing package (the original is not recoverable). */
+	public function ajax_regen_link() {
+		$this->guard();
+		$id = sanitize_text_field( wp_unslash( $_POST['package'] ?? '' ) );
+		try {
+			$link = Package::for_id( $id )->regenerate_link();
+			wp_send_json_success( array( 'pull_link' => $link ) );
+		} catch ( \Exception $e ) {
+			wp_send_json_error( array( 'message' => $e->getMessage() ) );
+		}
+	}
+
+	/** Delete an existing package (removes its DB dump + archives from disk). */
+	public function ajax_delete_pkg() {
+		$this->guard();
+		$id = sanitize_text_field( wp_unslash( $_POST['package'] ?? '' ) );
+		try {
+			Package::for_id( $id )->delete();
+			wp_send_json_success( array( 'deleted' => true ) );
 		} catch ( \Exception $e ) {
 			wp_send_json_error( array( 'message' => $e->getMessage() ) );
 		}

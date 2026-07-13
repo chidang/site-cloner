@@ -48,6 +48,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 			<details class="sd-manual">
 				<summary><?php esc_html_e( "Or download the files manually (empty staging / can't connect)", 'site-cloner' ); ?></summary>
+				<p><button type="button" id="sd-dl-all" class="button button-primary"><?php esc_html_e( 'Download all files', 'site-cloner' ); ?></button></p>
 				<ul class="sd-files"></ul>
 				<p class="description"><?php esc_html_e( 'Download all files, then use', 'site-cloner' ); ?> <code>installer.php</code> <?php esc_html_e( 'on staging.', 'site-cloner' ); ?></p>
 			</details>
@@ -55,4 +56,59 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 		<div id="sd-error" class="notice notice-error" style="display:none;"><p></p></div>
 	</div>
+
+	<?php if ( ! empty( $packages ) ) : ?>
+	<div class="sd-card sd-existing">
+		<h2 style="margin-top:0;"><?php esc_html_e( 'Packages on this site', 'site-cloner' ); ?></h2>
+		<p class="description"><?php esc_html_e( 'Previously created packages are kept on disk, so you can download the files again or get a fresh pull link after reloading this page.', 'site-cloner' ); ?></p>
+
+		<?php foreach ( $packages as $pkg ) : ?>
+			<div class="sd-pkg" data-id="<?php echo esc_attr( $pkg['id'] ); ?>">
+				<div class="sd-pkg-head">
+					<code><?php echo esc_html( $pkg['id'] ); ?></code>
+					<span class="description"><?php echo esc_html( trim( $pkg['site_url'] . ' · ' . $pkg['created'] . ' · ' . $pkg['size'], ' ·' ) ); ?></span>
+				</div>
+
+				<p class="sd-pkg-actions">
+					<button type="button" class="button button-primary sd-pkg-dlall"><?php esc_html_e( 'Download all files', 'site-cloner' ); ?></button>
+					<?php if ( $pkg['has_token'] ) : ?>
+						<button type="button" class="button sd-pkg-link"><?php esc_html_e( 'Get pull link', 'site-cloner' ); ?></button>
+					<?php endif; ?>
+					<button type="button" class="button sd-pkg-delete"><?php esc_html_e( 'Delete', 'site-cloner' ); ?></button>
+					<?php if ( $pkg['has_pass'] ) : ?>
+						<span class="description">🔒 <?php esc_html_e( 'password-protected', 'site-cloner' ); ?></span>
+					<?php endif; ?>
+				</p>
+
+				<div class="sd-pkg-linkrow sd-pull-row" style="display:none;">
+					<input type="text" class="sd-pkg-linkinput" readonly>
+					<button type="button" class="button sd-pkg-linkcopy"><?php esc_html_e( 'Copy', 'site-cloner' ); ?></button>
+				</div>
+				<p class="description sd-pkg-linknote" style="display:none;"><?php esc_html_e( 'A brand-new link was generated (valid 48h). Any link shared earlier for this package no longer works.', 'site-cloner' ); ?></p>
+
+				<ul class="sd-files sd-pkg-files">
+					<?php
+					$f = $pkg['files'];
+					if ( ! empty( $f['installer'] ) ) {
+						printf( '<li><a href="%s" download>⬇ installer.php</a></li>', esc_url( $f['installer'] ) );
+					}
+					foreach ( $f['archives'] as $az ) {
+						printf(
+							'<li><a href="%1$s" download>⬇ %2$s</a></li>',
+							esc_url( $az ),
+							esc_html( basename( $az ) )
+						);
+					}
+					if ( ! empty( $f['database'] ) ) {
+						printf( '<li><a href="%s" download>⬇ database.sql</a></li>', esc_url( $f['database'] ) );
+					}
+					if ( ! empty( $f['manifest'] ) ) {
+						printf( '<li><a href="%s" download>⬇ manifest.json</a></li>', esc_url( $f['manifest'] ) );
+					}
+					?>
+				</ul>
+			</div>
+		<?php endforeach; ?>
+	</div>
+	<?php endif; ?>
 </div>
