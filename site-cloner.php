@@ -21,10 +21,8 @@ define( 'FLEXA_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FLEXA_URL', plugin_dir_url( __FILE__ ) );
 
 // Package storage directory: <uploads>/sd-packages (resolved via wp_upload_dir()).
-$sd_uploads = wp_upload_dir();
-define( 'FLEXA_PACKAGE_DIR', $sd_uploads['basedir'] . '/sd-packages' );
-define( 'FLEXA_PACKAGE_URL', $sd_uploads['baseurl'] . '/sd-packages' );
-unset( $sd_uploads );
+define( 'FLEXA_PACKAGE_DIR', wp_upload_dir()['basedir'] . '/sd-packages' );
+define( 'FLEXA_PACKAGE_URL', wp_upload_dir()['baseurl'] . '/sd-packages' );
 
 require_once FLEXA_PATH . 'includes/class-sd-database.php';
 require_once FLEXA_PATH . 'includes/class-sd-archive.php';
@@ -123,7 +121,7 @@ class Plugin {
 		}
 	}
 
-	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Every AJAX handler below calls $this->guard() first, which runs check_ajax_referer( 'sd_build', 'nonce' ) and current_user_can( 'manage_options' ).
+	// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- Every AJAX handler below calls $this->guard() first, which runs check_ajax_referer( 'sd_build', 'nonce' ) and current_user_can( 'manage_options' ).
 
 	/** Step 1: initialize the package, scan tables and the file list. */
 	public function ajax_init() {
@@ -277,7 +275,7 @@ class Plugin {
 
 	public function ajax_pull_info() {
 		$this->guard();
-		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) );
+		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- esc_url_raw() sanitizes the URL; WPCS classes it as an escaping (not sanitizing) function so it flags a false positive.
 		$verify = empty( $_POST['insecure'] );
 		$pwd    = (string) wp_unslash( $_POST['password'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw password forwarded to the source over a header and verified with password_verify(); sanitizing would corrupt valid passwords.
 		try {
@@ -289,7 +287,7 @@ class Plugin {
 
 	public function ajax_pull_test() {
 		$this->guard();
-		$link = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) );
+		$link = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- esc_url_raw() sanitizes the URL; WPCS classes it as an escaping (not sanitizing) function so it flags a false positive.
 		$pwd  = (string) wp_unslash( $_POST['password'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw password forwarded to the source over a header and verified with password_verify(); sanitizing would corrupt valid passwords.
 		try {
 			wp_send_json_success( Pull::test( $link, $pwd ) );
@@ -300,7 +298,7 @@ class Plugin {
 
 	public function ajax_pull_cleanup() {
 		$this->guard();
-		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) );
+		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- esc_url_raw() sanitizes the URL; WPCS classes it as an escaping (not sanitizing) function so it flags a false positive.
 		$verify = empty( $_POST['insecure'] );
 		$pwd    = (string) wp_unslash( $_POST['password'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw password forwarded to the source over a header and verified with password_verify(); sanitizing would corrupt valid passwords.
 		wp_send_json_success( array( 'cleaned' => Pull::cleanup( $link, $verify, $pwd ) ) );
@@ -308,7 +306,7 @@ class Plugin {
 
 	public function ajax_pull_uninstall() {
 		$this->guard();
-		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) );
+		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- esc_url_raw() sanitizes the URL; WPCS classes it as an escaping (not sanitizing) function so it flags a false positive.
 		$verify = empty( $_POST['insecure'] );
 		$pwd    = (string) wp_unslash( $_POST['password'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw password forwarded to the source over a header and verified with password_verify(); sanitizing would corrupt valid passwords.
 		wp_send_json_success( Pull::uninstall_remote( $link, $verify, $pwd ) );
@@ -316,7 +314,7 @@ class Plugin {
 
 	public function ajax_pull_download() {
 		$this->guard();
-		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) );
+		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- esc_url_raw() sanitizes the URL; WPCS classes it as an escaping (not sanitizing) function so it flags a false positive.
 		$name   = sanitize_text_field( wp_unslash( $_POST['name'] ?? '' ) );
 		$offset = absint( wp_unslash( $_POST['offset'] ?? 0 ) );
 		$total  = absint( wp_unslash( $_POST['total'] ?? 0 ) );
@@ -328,7 +326,7 @@ class Plugin {
 			wp_send_json_error( array( 'message' => $e->getMessage() ) );
 		}
 	}
-	// phpcs:enable WordPress.Security.NonceVerification.Missing
+	// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended
 }
 
 new Plugin();

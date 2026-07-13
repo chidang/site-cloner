@@ -41,13 +41,13 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 			<table class="widefat striped" id="sd-pkg-table">
 				<thead><tr><th></th><th><?php esc_html_e( 'Package', 'site-cloner' ); ?></th><th><?php esc_html_e( 'Source site', 'site-cloner' ); ?></th><th><?php esc_html_e( 'Created', 'site-cloner' ); ?></th><th><?php esc_html_e( 'Size', 'site-cloner' ); ?></th></tr></thead>
 				<tbody>
-				<?php foreach ( $packages as $p ) : ?>
+				<?php foreach ( $packages as $sd_p ) : ?>
 					<tr>
-						<td><input type="radio" name="sd_pkg" value="<?php echo esc_attr( $p['id'] ); ?>"></td>
-						<td><code><?php echo esc_html( $p['id'] ); ?></code></td>
-						<td><?php echo esc_html( $p['site_url'] ); ?></td>
-						<td><?php echo esc_html( $p['created'] ); ?></td>
-						<td><?php echo esc_html( $p['size'] ); ?></td>
+						<td><input type="radio" name="sd_pkg" value="<?php echo esc_attr( $sd_p['id'] ); ?>"></td>
+						<td><code><?php echo esc_html( $sd_p['id'] ); ?></code></td>
+						<td><?php echo esc_html( $sd_p['site_url'] ); ?></td>
+						<td><?php echo esc_html( $sd_p['created'] ); ?></td>
+						<td><?php echo esc_html( $sd_p['size'] ); ?></td>
 					</tr>
 				<?php endforeach; ?>
 				</tbody>

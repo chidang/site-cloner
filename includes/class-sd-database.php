@@ -107,10 +107,15 @@ class Database {
 
 			$limit  = (int) $budget; // maximum number of rows requested this time
 			$offset = (int) $offset;
-			$rows   = $this->wpdb->get_results(
+			// Table name comes from SHOW TABLES (not user input) and MySQL has no
+			// placeholder for identifiers; LIMIT/OFFSET are prepared with %d. The
+			// disable/enable block covers the whole multi-line statement.
+			// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
+			$rows = $this->wpdb->get_results(
 				$this->wpdb->prepare( "SELECT * FROM `$table` LIMIT %d OFFSET %d", $limit, $offset ),
 				ARRAY_A
-			); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name comes from SHOW TABLES (not user input); LIMIT/OFFSET values are prepared with %d.
+			);
+			// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 			$count = count( $rows );
 
 			if ( $count > 0 ) {
@@ -142,7 +147,7 @@ class Database {
 	private function write_structure( $fh, $table ) {
 		fwrite( $fh, "\n-- Table: $table\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Chunked stream I/O; see fopen note.
 		fwrite( $fh, "DROP TABLE IF EXISTS `$table`;\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Chunked stream I/O; see fopen note.
-		$create = $this->wpdb->get_row( "SHOW CREATE TABLE `$table`", ARRAY_N ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table identifier from SHOW TABLES (not user input); MySQL has no placeholder for identifiers.
+		$create = $this->wpdb->get_row( "SHOW CREATE TABLE `$table`", ARRAY_N ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table identifier from SHOW TABLES (not user input); MySQL has no placeholder for identifiers.
 		if ( isset( $create[1] ) ) {
 			fwrite( $fh, $create[1] . ";\n\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Chunked stream I/O; see fopen note.
 		}

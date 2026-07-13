@@ -62,20 +62,20 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 		<h2 style="margin-top:0;"><?php esc_html_e( 'Packages on this site', 'site-cloner' ); ?></h2>
 		<p class="description"><?php esc_html_e( 'Previously created packages are kept on disk, so you can download the files again or get a fresh pull link after reloading this page.', 'site-cloner' ); ?></p>
 
-		<?php foreach ( $packages as $pkg ) : ?>
-			<div class="sd-pkg" data-id="<?php echo esc_attr( $pkg['id'] ); ?>">
+		<?php foreach ( $packages as $sd_pkg ) : ?>
+			<div class="sd-pkg" data-id="<?php echo esc_attr( $sd_pkg['id'] ); ?>">
 				<div class="sd-pkg-head">
-					<code><?php echo esc_html( $pkg['id'] ); ?></code>
-					<span class="description"><?php echo esc_html( trim( $pkg['site_url'] . ' · ' . $pkg['created'] . ' · ' . $pkg['size'], ' ·' ) ); ?></span>
+					<code><?php echo esc_html( $sd_pkg['id'] ); ?></code>
+					<span class="description"><?php echo esc_html( trim( $sd_pkg['site_url'] . ' · ' . $sd_pkg['created'] . ' · ' . $sd_pkg['size'], ' ·' ) ); ?></span>
 				</div>
 
 				<p class="sd-pkg-actions">
 					<button type="button" class="button button-primary sd-pkg-dlall"><?php esc_html_e( 'Download all files', 'site-cloner' ); ?></button>
-					<?php if ( $pkg['has_token'] ) : ?>
+					<?php if ( $sd_pkg['has_token'] ) : ?>
 						<button type="button" class="button sd-pkg-link"><?php esc_html_e( 'Get pull link', 'site-cloner' ); ?></button>
 					<?php endif; ?>
 					<button type="button" class="button sd-pkg-delete"><?php esc_html_e( 'Delete', 'site-cloner' ); ?></button>
-					<?php if ( $pkg['has_pass'] ) : ?>
+					<?php if ( $sd_pkg['has_pass'] ) : ?>
 						<span class="description">🔒 <?php esc_html_e( 'password-protected', 'site-cloner' ); ?></span>
 					<?php endif; ?>
 				</p>
@@ -88,22 +88,22 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 				<ul class="sd-files sd-pkg-files">
 					<?php
-					$f = $pkg['files'];
-					if ( ! empty( $f['installer'] ) ) {
-						printf( '<li><a href="%s" download="installer.php">⬇ installer.php</a></li>', esc_url( $f['installer'] ) );
+					$sd_f = $sd_pkg['files'];
+					if ( ! empty( $sd_f['installer'] ) ) {
+						printf( '<li><a href="%s" download="installer.php">⬇ installer.php</a></li>', esc_url( $sd_f['installer'] ) );
 					}
-					foreach ( $f['archives'] as $az ) {
+					foreach ( $sd_f['archives'] as $sd_az ) {
 						printf(
 							'<li><a href="%1$s" download>⬇ %2$s</a></li>',
-							esc_url( $az ),
-							esc_html( basename( $az ) )
+							esc_url( $sd_az ),
+							esc_html( basename( $sd_az ) )
 						);
 					}
-					if ( ! empty( $f['database'] ) ) {
-						printf( '<li><a href="%s" download>⬇ database.sql</a></li>', esc_url( $f['database'] ) );
+					if ( ! empty( $sd_f['database'] ) ) {
+						printf( '<li><a href="%s" download>⬇ database.sql</a></li>', esc_url( $sd_f['database'] ) );
 					}
-					if ( ! empty( $f['manifest'] ) ) {
-						printf( '<li><a href="%s" download>⬇ manifest.json</a></li>', esc_url( $f['manifest'] ) );
+					if ( ! empty( $sd_f['manifest'] ) ) {
+						printf( '<li><a href="%s" download>⬇ manifest.json</a></li>', esc_url( $sd_f['manifest'] ) );
 					}
 					?>
 				</ul>
