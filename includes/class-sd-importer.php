@@ -207,9 +207,10 @@ class Importer {
 	 */
 	public function deploy_database() {
 		global $wpdb;
-		@set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions, Squiz.PHP.DiscouragedFunctions.Discouraged -- Scoped to this single long-running DB-import request, not global.
+		// We override neither max_execution_time nor memory_limit here; the admin
+		// System check reports both server limits so the user can raise them in
+		// php.ini before a single-pass import.
 		@ignore_user_abort( true );
-		@ini_set( 'memory_limit', '512M' ); // phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged -- Scoped to this single long-running DB-import request; raises memory only for the import.
 
 		$mysqli       = $wpdb->dbh;
 		$prod_prefix  = $this->manifest['prefix'];

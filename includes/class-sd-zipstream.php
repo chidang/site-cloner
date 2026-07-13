@@ -85,7 +85,9 @@ class Zip_Stream {
 			header( 'Content-Length: ' . $plan['total'] );
 			header( 'X-Content-Type-Options: nosniff' );
 
-			@set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- may be disabled on some hosts; a long stream must not be capped by max_execution_time.
+			// Note: we do NOT raise max_execution_time here; the admin System check
+			// reports the server's limit so the user can raise it in php.ini if a
+			// large download is at risk of being cut short.
 			while ( ob_get_level() > 0 ) {
 				ob_end_clean(); // don't buffer a multi-GB stream in memory.
 			}
@@ -199,7 +201,7 @@ class Zip_Stream {
 			return;
 		}
 		while ( ! feof( $fh ) ) {
-			$sink( fread( $fh, self::CHUNK ) );
+			$sink( fread( $fh, self::CHUNK ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- Streaming multi-GB package parts to the client; WP_Filesystem buffers whole files in memory.
 		}
 		fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Chunked stream I/O; see fopen note.
 	}

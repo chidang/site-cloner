@@ -43,9 +43,11 @@ class Health {
 
 		$met = (int) ini_get( 'max_execution_time' );
 		/* translators: %d: max_execution_time in seconds */
-		$rows[] = array( 'max_execution_time', ( 0 === $met || $met >= 60 ) ? 'ok' : 'warn', $met ? sprintf( __( '%ds', 'site-cloner' ), $met ) : __( '0 (unlimited)', 'site-cloner' ), __( 'A low value can time out during a single-pass import', 'site-cloner' ) );
+		$rows[] = array( 'max_execution_time', ( 0 === $met || $met >= 60 ) ? 'ok' : 'warn', $met ? sprintf( __( '%ds', 'site-cloner' ), $met ) : __( '0 (unlimited)', 'site-cloner' ), __( 'The plugin does not override this. A low value can cut short a single-pass import or a large package download — raise it in php.ini if needed.', 'site-cloner' ) );
 
-		$rows[] = array( 'memory_limit', 'info', ini_get( 'memory_limit' ), '' );
+		$mem_raw = trim( (string) ini_get( 'memory_limit' ) );
+		$mem_ok  = ( '-1' === $mem_raw ) || self::to_bytes( $mem_raw ) >= 256 * 1024 * 1024;
+		$rows[]  = array( 'memory_limit', $mem_ok ? 'ok' : 'warn', ( '-1' === $mem_raw ? __( '-1 (unlimited)', 'site-cloner' ) : $mem_raw ), __( 'The plugin does not raise this. 256M or more is recommended for a single-pass import — raise it in php.ini if needed.', 'site-cloner' ) );
 
 		$upload = min(
 			self::to_bytes( ini_get( 'upload_max_filesize' ) ),
