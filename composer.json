@@ -1,0 +1,21 @@
+{
+    "name": "flexa/site-cloner",
+    "description": "Site Cloner — production→staging migration plugin.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=7.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11"
+    },
+    "autoload-dev": {
+        "psr-4": { "Flexa\\SiteCloner\\Tests\\": "tests/" }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}

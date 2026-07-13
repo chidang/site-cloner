@@ -11,8 +11,16 @@
 /.vscode
 /.DS_Store
 /node_modules
+/vendor
 /build
 /release.sh
+/tests
+/phpunit.xml.dist
+/phpunit.xml
+/composer.json
+/composer.lock
+/.phpunit.result.cache
+/.phpunit.cache
 /README.md
 /CHANGELOG.md
 /CONTRIBUTING.md

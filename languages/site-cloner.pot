@@ -9,15 +9,15 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-13T11:24:49+00:00\n"
+"POT-Creation-Date: 2026-07-13T12:18:10+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.10.0\n"
 "X-Domain: site-cloner\n"
 
 #. Plugin Name of the plugin
 #: site-cloner.php
-#: site-cloner.php:69
 #: site-cloner.php:70
+#: site-cloner.php:71
 msgid "Site Cloner"
 msgstr ""
 
@@ -161,7 +161,7 @@ msgstr ""
 
 #: includes/class-sd-importer.php:66
 #: includes/class-sd-package.php:23
-#: includes/class-sd-package.php:208
+#: includes/class-sd-package.php:226
 msgid "Invalid package ID."
 msgstr ""
 
@@ -198,7 +198,8 @@ msgid "Could not read database.sql."
 msgstr ""
 
 #: includes/class-sd-package.php:37
-#: includes/class-sd-package.php:266
+#: includes/class-sd-package.php:284
+#: site-cloner.php:251
 msgid "Package not found."
 msgstr ""
 
@@ -219,7 +220,7 @@ msgid "The link has expired — please create a new package on production."
 msgstr ""
 
 #: includes/class-sd-pull.php:55
-#: includes/class-sd-pull.php:271
+#: includes/class-sd-pull.php:238
 msgid "This package is password-protected — please enter the password."
 msgstr ""
 
@@ -232,348 +233,340 @@ msgstr ""
 msgid "IP %s is not in the allowlist. Add this IP to the \"IP restriction\" field when creating the package on production."
 msgstr ""
 
-#: includes/class-sd-pull.php:119
+#: includes/class-sd-pull.php:100
 msgid "Invalid file."
 msgstr ""
 
-#: includes/class-sd-pull.php:124
+#: includes/class-sd-pull.php:105
 msgid "Invalid action."
 msgstr ""
 
 #. translators: %s: underlying error message
-#: includes/class-sd-pull.php:212
+#: includes/class-sd-pull.php:179
 msgid "SSL error while calling production (%s). If production is a local/self-signed site (.test, .local…), enable \"Skip SSL verification\" and try again."
 msgstr ""
 
 #. translators: %s: underlying error message
-#: includes/class-sd-pull.php:215
+#: includes/class-sd-pull.php:182
 msgid "Could not reach production: %s"
 msgstr ""
 
-#: includes/class-sd-pull.php:224
+#: includes/class-sd-pull.php:191
 msgid "Invalid link (missing http/https or the sd_pull parameter)."
 msgstr ""
 
 #. translators: %s: underlying error message
-#: includes/class-sd-pull.php:240
+#: includes/class-sd-pull.php:207
 msgid "Still could not connect even with SSL verification off: %s"
 msgstr ""
 
-#: includes/class-sd-pull.php:264
+#: includes/class-sd-pull.php:231
 msgid "Connected, but the certificate is invalid (self-signed?). \"Skip SSL verification\" will be enabled automatically."
 msgstr ""
 
-#: includes/class-sd-pull.php:265
+#: includes/class-sd-pull.php:232
 msgid "Connection OK, token valid."
 msgstr ""
 
 #. translators: %s: error message returned by production
-#: includes/class-sd-pull.php:276
+#: includes/class-sd-pull.php:243
 msgid "Production returned an error: %s (check the token/link)."
 msgstr ""
 
 #. translators: %s: HTTP response code
-#: includes/class-sd-pull.php:280
+#: includes/class-sd-pull.php:247
 msgid "HTTP %s — invalid response."
 msgstr ""
 
-#: includes/class-sd-pull.php:286
-#: includes/class-sd-pull.php:328
-#: includes/class-sd-pull.php:355
+#: includes/class-sd-pull.php:253
+#: includes/class-sd-pull.php:305
 msgid "Invalid link."
 msgstr ""
 
 #. translators: %s: HTTP response code
-#: includes/class-sd-pull.php:297
+#: includes/class-sd-pull.php:264
 msgid "Production returned an error (%s). Check the link/token/password."
 msgstr ""
 
-#: includes/class-sd-pull.php:302
+#: includes/class-sd-pull.php:269
 msgid "Invalid package data."
 msgstr ""
 
-#: includes/class-sd-pull.php:337
-msgid "Removed the plugin from the source site."
-msgstr ""
-
-#: includes/class-sd-pull.php:339
-msgid "Could not uninstall (check the token/password/IP)."
-msgstr ""
-
-#: includes/class-sd-pull.php:359
+#: includes/class-sd-pull.php:309
 msgid "Invalid file name."
 msgstr ""
 
 #. translators: %s: HTTP response code
-#: includes/class-sd-pull.php:377
+#: includes/class-sd-pull.php:327
 msgid "Production returned an error during download (%s)."
 msgstr ""
 
-#: includes/class-sd-pull.php:386
+#: includes/class-sd-pull.php:336
 msgid "Could not write the local file."
 msgstr ""
 
-#: site-cloner.php:76
+#: site-cloner.php:77
 msgid "Site Cloner – Import"
 msgstr ""
 
-#: site-cloner.php:77
+#: site-cloner.php:78
 msgid "Site Cloner Import"
 msgstr ""
 
-#: site-cloner.php:87
+#: site-cloner.php:88
 msgid "Backup"
 msgstr ""
 
-#: site-cloner.php:88
+#: site-cloner.php:89
 msgid "Restore"
 msgstr ""
 
-#: site-cloner.php:120
+#: site-cloner.php:121
 msgid "Permission denied."
 msgstr ""
 
-#: site-cloner.php:222
+#: site-cloner.php:223
+#: site-cloner.php:247
 msgid "Invalid package."
 msgstr ""
 
-#: site-cloner.php:226
+#: site-cloner.php:227
 msgid "Installer not found."
 msgstr ""
 
-#: templates/admin-page.php:6
+#: templates/admin-page.php:10
 msgid "Create a package to migrate this site to staging. Includes"
 msgstr ""
 
-#: templates/admin-page.php:12
+#: templates/admin-page.php:16
 msgid "Protection password (optional):"
 msgstr ""
 
-#: templates/admin-page.php:13
+#: templates/admin-page.php:17
 msgid "Leave empty if not needed"
 msgstr ""
 
-#: templates/admin-page.php:14
+#: templates/admin-page.php:18
 msgid "If set, the staging side must enter this password to pull the package (send it to them through a private channel, don't include it in the link)."
 msgstr ""
 
-#: templates/admin-page.php:17
+#: templates/admin-page.php:21
 msgid "IP restriction (optional):"
 msgstr ""
 
-#: templates/admin-page.php:18
+#: templates/admin-page.php:22
 msgid "e.g. 203.0.113.5, 203.0.113.6"
 msgstr ""
 
-#: templates/admin-page.php:19
+#: templates/admin-page.php:23
 msgid "Only these IPs can pull the package. Leave empty = no restriction. Don't know the destination server's IP yet? Leave it empty, click Test connection on the destination side, and it will report the IP for you to add here."
 msgstr ""
 
-#: templates/admin-page.php:21
+#: templates/admin-page.php:25
 msgid "Create Package"
 msgstr ""
 
-#: templates/admin-page.php:26
+#: templates/admin-page.php:30
 msgid "Database"
 msgstr ""
 
-#: templates/admin-page.php:30
+#: templates/admin-page.php:34
 msgid "Files"
 msgstr ""
 
-#: templates/admin-page.php:33
+#: templates/admin-page.php:37
 msgid "Initializing…"
 msgstr ""
 
-#: templates/admin-page.php:37
+#: templates/admin-page.php:41
 msgid "Package is ready"
 msgstr ""
 
-#: templates/admin-page.php:40
+#: templates/admin-page.php:44
 msgid "Fastest way — no upload/download needed:"
 msgstr ""
 
-#: templates/admin-page.php:41
+#: templates/admin-page.php:45
 msgid "Install this plugin on staging, go to"
 msgstr ""
 
-#: templates/admin-page.php:41
+#: templates/admin-page.php:45
 msgid "paste the link below and click run:"
 msgstr ""
 
-#: templates/admin-page.php:44
-#: templates/admin-page.php:85
+#: templates/admin-page.php:48
+#: templates/admin-page.php:95
 msgid "Copy"
 msgstr ""
 
-#: templates/admin-page.php:46
+#: templates/admin-page.php:50
 msgid "The link contains a token that grants access to the package. Only share it with people you trust; delete the package after the migration is done."
 msgstr ""
 
-#: templates/admin-page.php:50
+#: templates/admin-page.php:54
 msgid "Or download the files manually (empty staging / can't connect)"
 msgstr ""
 
-#: templates/admin-page.php:51
-#: templates/admin-page.php:73
-msgid "Download all files"
+#: templates/admin-page.php:56
+msgid "Download the whole package (.zip)"
 msgstr ""
 
-#: templates/admin-page.php:53
-msgid "Download all files, then use"
+#: templates/admin-page.php:57
+#: templates/admin-page.php:83
+msgid "Download files separately"
 msgstr ""
 
-#: templates/admin-page.php:53
-msgid "on staging."
+#: templates/admin-page.php:59
+msgid "The single .zip bundles every file; unzip it on staging, then run"
 msgstr ""
 
-#: templates/admin-page.php:62
+#: templates/admin-page.php:69
 msgid "Packages on this site"
 msgstr ""
 
-#: templates/admin-page.php:63
+#: templates/admin-page.php:70
 msgid "Previously created packages are kept on disk, so you can download the files again or get a fresh pull link after reloading this page."
 msgstr ""
 
-#: templates/admin-page.php:75
+#: templates/admin-page.php:81
+msgid "Download package (.zip)"
+msgstr ""
+
+#: templates/admin-page.php:85
 msgid "Get pull link"
 msgstr ""
 
-#: templates/admin-page.php:77
+#: templates/admin-page.php:87
 msgid "Delete"
 msgstr ""
 
-#: templates/admin-page.php:79
+#: templates/admin-page.php:89
 msgid "password-protected"
 msgstr ""
 
-#: templates/admin-page.php:87
+#: templates/admin-page.php:97
 msgid "A brand-new link was generated (valid 48h). Any link shared earlier for this package no longer works."
 msgstr ""
 
-#: templates/import-page.php:6
+#: templates/import-page.php:10
 msgid "Site Cloner – Import (Staging)"
 msgstr ""
 
-#: templates/import-page.php:9
+#: templates/import-page.php:13
 msgid "Warning:"
 msgstr ""
 
-#: templates/import-page.php:9
+#: templates/import-page.php:13
 msgid "this operation will"
 msgstr ""
 
-#: templates/import-page.php:9
+#: templates/import-page.php:13
 msgid "overwrite all files + the database"
 msgstr ""
 
-#: templates/import-page.php:9
+#: templates/import-page.php:13
 msgid "of this staging site."
 msgstr ""
 
-#: templates/import-page.php:10
+#: templates/import-page.php:14
 msgid "You may be logged out once it's done (because the users table now holds production's data) — log back in using a production account."
 msgstr ""
 
-#: templates/import-page.php:16
+#: templates/import-page.php:20
 msgid "Pull from production via link"
 msgstr ""
 
-#: templates/import-page.php:17
+#: templates/import-page.php:21
 msgid "Paste the link generated by the"
 msgstr ""
 
-#: templates/import-page.php:17
+#: templates/import-page.php:21
 msgid "page on production. Staging will download the package and migrate automatically — no manual upload needed."
 msgstr ""
 
-#: templates/import-page.php:20
-#: assets/admin.js:268
-#: assets/admin.js:286
+#: templates/import-page.php:24
+#: assets/admin.js:273
+#: assets/admin.js:291
 msgid "Test connection"
 msgstr ""
 
-#: templates/import-page.php:24
+#: templates/import-page.php:28
 msgid "Password (if the package has one)"
 msgstr ""
 
-#: templates/import-page.php:27
+#: templates/import-page.php:31
 msgid "Skip SSL verification (only for local/self-signed production:"
 msgstr ""
 
-#: templates/import-page.php:30
-#: templates/import-page.php:56
+#: templates/import-page.php:34
+#: templates/import-page.php:60
 msgid "I understand staging will be completely overwritten."
 msgstr ""
 
-#: templates/import-page.php:32
+#: templates/import-page.php:36
 msgid "Pull &amp; Migrate"
 msgstr ""
 
-#: templates/import-page.php:36
+#: templates/import-page.php:40
 msgid "Or select a package already on staging"
 msgstr ""
 
-#: templates/import-page.php:37
+#: templates/import-page.php:41
 msgid "Copy the package folder into"
 msgstr ""
 
-#: templates/import-page.php:37
+#: templates/import-page.php:41
 msgid "(via FTP/File Manager), then reload this page."
 msgstr ""
 
-#: templates/import-page.php:39
+#: templates/import-page.php:43
 msgid "No packages found in"
 msgstr ""
 
-#: templates/import-page.php:42
+#: templates/import-page.php:46
 msgid "Package"
 msgstr ""
 
-#: templates/import-page.php:42
+#: templates/import-page.php:46
 msgid "Source site"
 msgstr ""
 
-#: templates/import-page.php:42
+#: templates/import-page.php:46
 msgid "Created"
 msgstr ""
 
-#: templates/import-page.php:42
+#: templates/import-page.php:46
 msgid "Size"
 msgstr ""
 
-#: templates/import-page.php:58
+#: templates/import-page.php:62
 msgid "Run Migrate"
 msgstr ""
 
-#: templates/import-page.php:65
+#: templates/import-page.php:69
 msgid "Downloading package from production"
 msgstr ""
 
-#: templates/import-page.php:69
+#: templates/import-page.php:73
 msgid "Extracting files"
 msgstr ""
 
-#: templates/import-page.php:73
+#: templates/import-page.php:77
 msgid "Import database + search-replace"
 msgstr ""
 
-#: templates/import-page.php:80
+#: templates/import-page.php:84
 msgid "Migration complete"
 msgstr ""
 
-#: templates/import-page.php:82
+#: templates/import-page.php:86
 msgid "Open wp-admin (log back in if needed)"
 msgstr ""
 
-#: templates/import-page.php:84
-msgid "Remove plugin from the source site"
-msgstr ""
-
 #: assets/admin.js:22
-#: assets/admin.js:163
-#: assets/admin.js:191
-#: assets/admin.js:218
+#: assets/admin.js:168
+#: assets/admin.js:196
+#: assets/admin.js:223
 msgid "An error occurred."
 msgstr ""
 
@@ -583,9 +576,9 @@ msgstr ""
 
 #: assets/admin.js:37
 #: assets/admin.js:78
-#: assets/admin.js:168
-#: assets/admin.js:196
-#: assets/admin.js:369
+#: assets/admin.js:173
+#: assets/admin.js:201
+#: assets/admin.js:374
 msgid "Server connection error."
 msgstr ""
 
@@ -608,12 +601,12 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: assets/admin.js:68
-#: assets/admin.js:399
+#: assets/admin.js:404
 msgid "Finalizing…"
 msgstr ""
 
 #: assets/admin.js:74
-#: assets/admin.js:405
+#: assets/admin.js:410
 msgid "Error while finalizing."
 msgstr ""
 
@@ -621,130 +614,109 @@ msgstr ""
 msgid "The package is password-protected. Send the password to the importer through a separate channel (don't paste it alongside the link)."
 msgstr ""
 
-#: assets/admin.js:111
-#: assets/admin.js:176
+#: assets/admin.js:116
+#: assets/admin.js:181
 msgid "Copied!"
 msgstr ""
 
 #. translators: 1: current file number, 2: total number of files.
-#: assets/admin.js:131
+#: assets/admin.js:136
 msgid "Downloading %1$d/%2$d…"
 msgstr ""
 
-#: assets/admin.js:180
+#: assets/admin.js:185
 msgid "Delete this package permanently? Its files will no longer be available for download."
 msgstr ""
 
-#: assets/admin.js:246
-#: assets/admin.js:351
+#: assets/admin.js:251
+#: assets/admin.js:356
 msgid "Preparing…"
 msgstr ""
 
-#: assets/admin.js:262
+#: assets/admin.js:267
 msgid "Testing…"
 msgstr ""
 
-#: assets/admin.js:264
+#: assets/admin.js:269
 msgid "Contacting production…"
 msgstr ""
 
 #. translators: 1: status message from production, 2: number of files, 3: human-readable size.
-#: assets/admin.js:278
+#: assets/admin.js:283
 msgid "%1$s — %2$d file, %3$s."
 msgid_plural "%1$s — %2$d files, %3$s."
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/admin.js:287
-#: assets/admin.js:320
+#: assets/admin.js:292
+#: assets/admin.js:325
 msgid "Connection error to staging."
 msgstr ""
 
-#: assets/admin.js:300
+#: assets/admin.js:305
 msgid "Fetching package info from production…"
 msgstr ""
 
 #. translators: 1: number of files, 2: human-readable total size.
-#: assets/admin.js:310
+#: assets/admin.js:315
 msgid "Downloading %1$d file (%2$s)…"
 msgid_plural "Downloading %1$d files (%2$s)…"
 msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: file name.
-#: assets/admin.js:341
+#: assets/admin.js:346
 msgid "Error while downloading %s."
 msgstr ""
 
 #. translators: 1: number of files, 2: number of parts.
-#: assets/admin.js:361
+#: assets/admin.js:366
 msgid "Extracting %1$d files (%2$d parts)…"
 msgstr ""
 
-#: assets/admin.js:389
+#: assets/admin.js:394
 msgid "Error while extracting."
 msgstr ""
 
-#: assets/admin.js:395
+#: assets/admin.js:400
 msgid "Importing database in chunks…"
 msgstr ""
 
-#: assets/admin.js:397
+#: assets/admin.js:402
 msgid "Running search-replace in chunks…"
 msgstr ""
 
-#: assets/admin.js:402
+#: assets/admin.js:407
 msgid "Finalize error."
 msgstr ""
 
 #. translators: %s: error message reported by the runner.
-#: assets/admin.js:417
+#: assets/admin.js:422
 msgid "Runner reported an error (%s) — switching to single-request import…"
 msgstr ""
 
-#: assets/admin.js:422
+#: assets/admin.js:427
 msgid "Runner error."
 msgstr ""
 
-#: assets/admin.js:433
+#: assets/admin.js:438
 msgid "Runner couldn't run — switching to single-request database import…"
 msgstr ""
 
 #. translators: 1: runner phase, 2: HTTP status code, 3: extra detail (may be empty).
-#: assets/admin.js:445
+#: assets/admin.js:450
 msgid "Runner error (%1$s) — HTTP %2$s%3$s"
 msgstr ""
 
-#: assets/admin.js:452
+#: assets/admin.js:457
 msgid "Importing database + search-replace (single request, don't reload the page)…"
 msgstr ""
 
-#: assets/admin.js:458
+#: assets/admin.js:463
 msgid "Error while importing database (may time out on large sites)."
 msgstr ""
 
 #. translators: 1: number of SQL statements, 2: number of updated data cells.
-#: assets/admin.js:466
+#: assets/admin.js:471
 msgid "Imported %1$d statements, updated %2$d data cells."
-msgstr ""
-
-#: assets/admin.js:477
-msgid "Removing…"
-msgstr ""
-
-#: assets/admin.js:482
-msgid "Removed"
-msgstr ""
-
-#: assets/admin.js:485
-#: assets/admin.js:490
-msgid "Remove plugin from source site"
-msgstr ""
-
-#: assets/admin.js:486
-msgid "Could not remove."
-msgstr ""
-
-#: assets/admin.js:491
-msgid "Connection error."
 msgstr ""
