@@ -90,7 +90,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 					<?php
 					$f = $pkg['files'];
 					if ( ! empty( $f['installer'] ) ) {
-						printf( '<li><a href="%s" download>⬇ installer.php</a></li>', esc_url( $f['installer'] ) );
+						printf( '<li><a href="%s" download="installer.php">⬇ installer.php</a></li>', esc_url( $f['installer'] ) );
 					}
 					foreach ( $f['archives'] as $az ) {
 						printf(

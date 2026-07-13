@@ -50,6 +50,7 @@ class Plugin {
 		// Manage packages already built on this site (re-shown after a reload).
 		add_action( 'wp_ajax_sd_regen_link', array( $this, 'ajax_regen_link' ) );
 		add_action( 'wp_ajax_sd_delete_pkg', array( $this, 'ajax_delete_pkg' ) );
+		add_action( 'wp_ajax_sd_installer',  array( $this, 'ajax_installer' ) );
 
 		// Import on the staging side.
 		add_action( 'wp_ajax_sd_import_prepare', array( $this, 'ajax_import_prepare' ) );
@@ -209,6 +210,30 @@ class Plugin {
 		} catch ( \Exception $e ) {
 			wp_send_json_error( array( 'message' => $e->getMessage() ) );
 		}
+	}
+
+	/**
+	 * Stream a package's installer.php as a forced download. Direct URLs to a
+	 * .php file under /uploads are blocked by most servers (nginx/Apache), so the
+	 * manual-download link 404s -> proxy the bytes through admin-ajax instead.
+	 */
+	public function ajax_installer() {
+		$this->guard();
+		$id = sanitize_text_field( wp_unslash( $_REQUEST['package'] ?? '' ) );
+		if ( ! preg_match( '/^[A-Za-z0-9_]+$/', $id ) ) {
+			wp_die( esc_html__( 'Invalid package.', 'site-cloner' ), '', array( 'response' => 400 ) );
+		}
+		$file = FLEXA_PACKAGE_DIR . '/' . $id . '/installer.php';
+		if ( ! is_file( $file ) ) {
+			wp_die( esc_html__( 'Installer not found.', 'site-cloner' ), '', array( 'response' => 404 ) );
+		}
+		nocache_headers();
+		header( 'Content-Type: application/octet-stream' );
+		header( 'Content-Disposition: attachment; filename="installer.php"' );
+		header( 'Content-Length: ' . filesize( $file ) );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents, WordPress.Security.EscapeOutput.OutputNotEscaped -- Streaming the raw installer.php bytes as an octet-stream download; escaping/WP_Filesystem would corrupt the file.
+		echo file_get_contents( $file );
+		exit;
 	}
 
 	/** ----- Import (staging) ----- */

@@ -102,7 +102,7 @@
 		$('#sd-build-spin').hide();
 	}
 	function link(url, label) {
-		return '<li><a href="' + url + '" download>⬇ ' + label + '</a></li>';
+		return '<li><a href="' + url + '" download="' + label + '">⬇ ' + label + '</a></li>';
 	}
 
 	$(document).on('click', '#sd-pull-copy', function () {

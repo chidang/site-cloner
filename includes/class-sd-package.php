@@ -176,12 +176,29 @@ class Package {
 			'pull_link' => $pull_link,
 			'has_pass'  => $has_pass,
 			'files'     => array(
-				'installer' => $base . '/installer.php',
+				'installer' => self::installer_download_url( $this->id ),
 				'archives'  => $archive_urls,
 				'database'  => $base . '/database.sql',
 				'manifest'  => $base . '/manifest.json',
 			),
 			'dir'       => $this->dir,
+		);
+	}
+
+	/**
+	 * installer.php lives inside <uploads>/sd-packages and is a PHP file, so most
+	 * servers (nginx/Apache hardening) refuse direct access to it -> the manual
+	 * download 404s. Serve it through admin-ajax instead, which streams the raw
+	 * bytes as an attachment.
+	 */
+	public static function installer_download_url( $id ) {
+		return add_query_arg(
+			array(
+				'action'  => 'sd_installer',
+				'package' => rawurlencode( $id ),
+				'nonce'   => wp_create_nonce( 'sd_build' ),
+			),
+			admin_url( 'admin-ajax.php' )
 		);
 	}
 
@@ -218,7 +235,7 @@ class Package {
 			}
 
 			$files = array( 'archives' => $archives );
-			if ( file_exists( "$dir/installer.php" ) ) { $files['installer'] = $base . '/installer.php'; }
+			if ( file_exists( "$dir/installer.php" ) ) { $files['installer'] = self::installer_download_url( $id ); }
 			if ( file_exists( "$dir/database.sql" ) )  { $files['database']  = $base . '/database.sql'; }
 			$files['manifest'] = $base . '/manifest.json';
 
