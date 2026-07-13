@@ -9,6 +9,13 @@
 @ini_set( 'memory_limit', '512M' );
 error_reporting( E_ERROR | E_PARSE );
 
+// PHP 8.1+ makes mysqli THROW on any query error by default, which would abort
+// the import on the first harmless failure. Turn that off so we handle errors
+// via return values / our own checks (matching the @mysqli_query() style below).
+if ( function_exists( 'mysqli_report' ) ) {
+	mysqli_report( MYSQLI_REPORT_OFF );
+}
+
 define( 'SD_ROOT', __DIR__ );
 $manifest = json_decode( @file_get_contents( SD_ROOT . '/manifest.json' ), true );
 if ( ! $manifest ) {
@@ -25,6 +32,33 @@ $guess_path = str_replace( '\\', '/', rtrim( SD_ROOT, '/\\' ) ) . '/';
 $step   = $_POST['step'] ?? 'form';
 $errors = array();
 $log    = array();
+
+/* Fields carried across the form -> check -> deploy steps. */
+$fields = array(
+	'db_host'  => $_POST['db_host'] ?? 'localhost',
+	'db_name'  => $_POST['db_name'] ?? '',
+	'db_user'  => $_POST['db_user'] ?? '',
+	'db_pass'  => $_POST['db_pass'] ?? '',
+	'prefix'   => $_POST['prefix'] ?? $manifest['prefix'],
+	'new_url'  => $_POST['new_url'] ?? $guess_url,
+	'new_path' => $_POST['new_path'] ?? $guess_path,
+);
+
+/* Run the pre-flight system check whenever we are about to migrate. */
+$preflight    = array();
+$preflight_ok = true;
+if ( 'check' === $step || 'deploy' === $step ) {
+	$preflight = sd_preflight( $manifest, $fields );
+	foreach ( $preflight as $c ) {
+		if ( ! $c['ok'] ) {
+			$preflight_ok = false;
+		}
+	}
+	// Never run the destructive migration if a check failed: fall back to the checklist.
+	if ( 'deploy' === $step && ! $preflight_ok ) {
+		$step = 'check';
+	}
+}
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -66,6 +100,130 @@ function sd_salt( $len = 64 ) {
 	return $out;
 }
 
+function sd_human_size( $bytes ) {
+	$units = array( 'B', 'KB', 'MB', 'GB', 'TB' );
+	$i     = 0;
+	$bytes = max( (float) $bytes, 0 );
+	while ( $bytes >= 1024 && $i < count( $units ) - 1 ) {
+		$bytes /= 1024;
+		$i++;
+	}
+	return round( $bytes, $i ? 1 : 0 ) . ' ' . $units[ $i ];
+}
+
+/**
+ * Pre-flight system check. Verifies the environment + package are ready
+ * BEFORE the destructive migration runs. Returns a list of
+ * array( label, ok, note ) rows. Rows with ok=false block the migration.
+ */
+function sd_preflight( $manifest, $fields ) {
+	$checks = array();
+
+	// PHP version.
+	$php_ok   = version_compare( PHP_VERSION, '7.0', '>=' );
+	$checks[] = array(
+		'label' => 'PHP version 7.0+',
+		'ok'    => $php_ok,
+		'note'  => 'running ' . PHP_VERSION,
+	);
+
+	// MySQLi extension.
+	$has_mysqli = function_exists( 'mysqli_connect' );
+	$checks[]   = array(
+		'label' => 'MySQLi extension',
+		'ok'    => $has_mysqli,
+		'note'  => $has_mysqli ? 'loaded' : 'not installed — cannot import the database',
+	);
+
+	// Zip extension (needed to extract the archive).
+	$has_zip  = class_exists( 'ZipArchive' );
+	$checks[] = array(
+		'label' => 'Zip extension (ZipArchive)',
+		'ok'    => $has_zip,
+		'note'  => $has_zip ? 'loaded' : 'not installed — cannot extract the archive',
+	);
+
+	// Target directory writable (extract + write wp-config.php).
+	$writable = is_writable( SD_ROOT );
+	$checks[] = array(
+		'label' => 'Target folder is writable',
+		'ok'    => $writable,
+		'note'  => $writable ? SD_ROOT : 'not writable: ' . SD_ROOT,
+	);
+
+	// database.sql present.
+	$sql_file = SD_ROOT . '/database.sql';
+	$has_sql  = is_file( $sql_file );
+	$checks[] = array(
+		'label' => 'database.sql present',
+		'ok'    => $has_sql,
+		'note'  => $has_sql ? sd_human_size( filesize( $sql_file ) ) : 'missing from this folder',
+	);
+
+	// Archive part(s) present.
+	$archives = ! empty( $manifest['archives'] ) ? $manifest['archives'] : array( 'archive.zip' );
+	$missing  = array();
+	foreach ( $archives as $apart ) {
+		if ( ! is_file( SD_ROOT . '/' . basename( $apart ) ) ) {
+			$missing[] = basename( $apart );
+		}
+	}
+	$checks[] = array(
+		'label' => 'Archive part(s) present (' . count( $archives ) . ')',
+		'ok'    => empty( $missing ),
+		'note'  => empty( $missing ) ? 'all parts found' : 'missing: ' . implode( ', ', $missing ),
+	);
+
+	// Database connection with the entered credentials.
+	if ( function_exists( 'mysqli_connect' ) ) {
+		$conn = @mysqli_connect( $fields['db_host'], $fields['db_user'], $fields['db_pass'], $fields['db_name'] );
+		if ( $conn ) {
+			$checks[] = array(
+				'label' => 'Database connection',
+				'ok'    => true,
+				'note'  => 'connected to "' . $fields['db_name'] . '"',
+			);
+			mysqli_close( $conn );
+		} else {
+			$checks[] = array(
+				'label' => 'Database connection',
+				'ok'    => false,
+				'note'  => mysqli_connect_error() ?: 'could not connect — check host / name / user / password',
+			);
+		}
+	}
+
+	return $checks;
+}
+
+/**
+ * Delete the migration artifacts left in this folder after a successful
+ * migration: the archive part(s), database.sql, manifest.json and the
+ * installer itself. Does NOT touch the extracted site files. Returns a
+ * list of array( file, ok ) rows; installer.php is removed last.
+ */
+function sd_cleanup( $manifest ) {
+	$targets = array( 'database.sql', 'manifest.json' );
+	$archives = ! empty( $manifest['archives'] ) ? $manifest['archives'] : array( 'archive.zip' );
+	foreach ( $archives as $apart ) {
+		$targets[] = basename( $apart );
+	}
+	$targets[] = basename( __FILE__ ); // installer.php — delete last.
+
+	$results = array();
+	foreach ( $targets as $name ) {
+		$path = SD_ROOT . '/' . $name;
+		if ( ! is_file( $path ) ) {
+			continue; // already gone.
+		}
+		$results[] = array(
+			'file' => $name,
+			'ok'   => @unlink( $path ),
+		);
+	}
+	return $results;
+}
+
 /* ------------------------------------------------------------------ */
 /* DEPLOY                                                              */
 /* ------------------------------------------------------------------ */
@@ -90,6 +248,13 @@ if ( 'deploy' === $step ) {
 		$errors[] = 'Could not connect to the database: ' . mysqli_connect_error();
 	} else {
 		mysqli_set_charset( $mysqli, 'utf8mb4' );
+
+		// Relax strict mode + disable FK checks so the dump imports cleanly on
+		// MySQL 5.7+/8.0. Without this, legacy zero-date defaults (e.g. WooCommerce
+		// ActionScheduler's "scheduled_date_gmt datetime NOT NULL DEFAULT
+		// '0000-00-00 00:00:00'") are rejected as an "Invalid default value".
+		@mysqli_query( $mysqli, "SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION'" );
+		@mysqli_query( $mysqli, 'SET SESSION FOREIGN_KEY_CHECKS = 0' );
 
 		// 2) Extract the archive parts.
 		$archives = ! empty( $manifest['archives'] ) ? $manifest['archives'] : array( 'archive.zip' );
@@ -287,6 +452,12 @@ function sd_write_config( $path, $name, $user, $pass, $host, $prefix ) {
 	file_put_contents( rtrim( $path, '/' ) . '/wp-config.php', $c );
 }
 
+/* One-click cleanup of the migration artifacts after a successful migration. */
+$cleaned = null;
+if ( 'cleanup' === $step ) {
+	$cleaned = sd_cleanup( $manifest );
+}
+
 $success = ( 'deploy' === $step && empty( $errors ) );
 ?>
 <!DOCTYPE html>
@@ -310,6 +481,14 @@ $success = ( 'deploy' === $step && empty( $errors ) );
 	.warn{color:#fbbf24;font-size:12px;margin-top:18px;}
 	code{background:#0f172a;padding:2px 6px;border-radius:4px;}
 	a{color:#60a5fa;}
+	.checks{list-style:none;margin:0 0 18px;padding:0;}
+	.checks li{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid #334155;border-radius:8px;margin-bottom:8px;background:#0f172a;}
+	.checks .ic{font-size:15px;line-height:1.4;flex:0 0 auto;}
+	.checks .pass .ic{color:#22c55e;} .checks .fail .ic{color:#f87171;}
+	.checks .lbl{font-size:14px;color:#e2e8f0;font-weight:600;}
+	.checks .note{font-size:12px;color:#94a3b8;margin-top:2px;word-break:break-all;}
+	.checks li.fail{border-color:#b91c1c;}
+	.btn-sec{background:#334155;} .btn-sec:hover{background:#475569;}
 </style>
 </head>
 <body>
@@ -320,34 +499,91 @@ $success = ( 'deploy' === $step && empty( $errors ) );
 	<?php if ( $success ) : ?>
 		<div class="ok">✅ Migration complete!</div>
 		<div class="log"><?php foreach ( $log as $l ) echo '• ' . htmlspecialchars( $l ) . '<br>'; ?></div>
-		<p class="warn">⚠️ For security reasons, DELETE the following immediately: <code>installer.php</code>, the <code>archive-*.zip</code> files, <code>database.sql</code>, and <code>manifest.json</code>.</p>
-		<p><a href="<?php echo htmlspecialchars( rtrim( $_POST['new_url'], '/' ) ); ?>/wp-admin/">→ Log in to wp-admin</a></p>
+		<p class="warn">⚠️ For security reasons you should delete the migration files now: <code>installer.php</code>, the <code>archive-*.zip</code> files, <code>database.sql</code>, and <code>manifest.json</code>. You can do it with one click below.</p>
+		<form method="post" onsubmit="return confirm('Delete the backup/migration files from this folder? This cannot be undone.');">
+			<input type="hidden" name="step" value="cleanup">
+			<input type="hidden" name="new_url" value="<?php echo htmlspecialchars( rtrim( (string) ( $_POST['new_url'] ?? '' ), '/' ) ); ?>">
+			<button type="submit">🗑 Delete backup files now</button>
+		</form>
+		<p style="margin-top:14px;"><a href="<?php echo htmlspecialchars( rtrim( (string) ( $_POST['new_url'] ?? '' ), '/' ) ); ?>/wp-admin/">→ Skip &amp; log in to wp-admin</a></p>
+
+	<?php elseif ( 'cleanup' === $step ) : ?>
+		<div class="ok">🧹 Cleanup complete!</div>
+		<ul class="checks" style="margin-top:14px;">
+			<?php foreach ( $cleaned as $r ) : ?>
+				<li class="<?php echo $r['ok'] ? 'pass' : 'fail'; ?>">
+					<span class="ic"><?php echo $r['ok'] ? '✔' : '✖'; ?></span>
+					<span>
+						<span class="lbl"><?php echo htmlspecialchars( $r['file'] ); ?></span>
+						<span class="note"><?php echo $r['ok'] ? 'deleted' : 'could not delete — remove it manually'; ?></span>
+					</span>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+		<p><a href="<?php echo htmlspecialchars( rtrim( (string) ( $_POST['new_url'] ?? '' ), '/' ) ); ?>/wp-admin/">→ Log in to wp-admin</a></p>
+
+	<?php elseif ( 'check' === $step ) : ?>
+
+		<div class="sub" style="margin-top:-8px;">System check</div>
+		<ul class="checks">
+			<?php foreach ( $preflight as $c ) : ?>
+				<li class="<?php echo $c['ok'] ? 'pass' : 'fail'; ?>">
+					<span class="ic"><?php echo $c['ok'] ? '✔' : '✖'; ?></span>
+					<span>
+						<span class="lbl"><?php echo htmlspecialchars( $c['label'] ); ?></span>
+						<span class="note"><?php echo htmlspecialchars( $c['note'] ); ?></span>
+					</span>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+
+		<?php if ( $preflight_ok ) : ?>
+			<div class="ok" style="margin-bottom:16px;">All checks passed — ready to migrate.</div>
+			<form method="post">
+				<input type="hidden" name="step" value="deploy">
+				<?php foreach ( $fields as $k => $v ) : ?>
+					<input type="hidden" name="<?php echo htmlspecialchars( $k ); ?>" value="<?php echo htmlspecialchars( $v ); ?>">
+				<?php endforeach; ?>
+				<button type="submit">Start migration →</button>
+			</form>
+		<?php else : ?>
+			<div class="err" style="margin-bottom:16px;">Please fix the items marked ✖ above, then re-check.</div>
+		<?php endif; ?>
+
+		<form method="post">
+			<input type="hidden" name="step" value="form">
+			<?php foreach ( $fields as $k => $v ) : ?>
+				<input type="hidden" name="<?php echo htmlspecialchars( $k ); ?>" value="<?php echo htmlspecialchars( $v ); ?>">
+			<?php endforeach; ?>
+			<button type="submit" class="btn-sec">← Back to details</button>
+		</form>
+
 	<?php else : ?>
 
 		<?php foreach ( $errors as $e ) echo '<div class="err">' . htmlspecialchars( $e ) . '</div>'; ?>
 
 		<form method="post">
-			<input type="hidden" name="step" value="deploy">
+			<input type="hidden" name="step" value="check">
 
 			<strong style="font-size:13px;color:#cbd5e1;">Staging database</strong>
 			<div class="row">
-				<div><label>DB Host</label><input name="db_host" value="<?php echo htmlspecialchars( $_POST['db_host'] ?? 'localhost' ); ?>"></div>
-				<div><label>DB Name</label><input name="db_name" value="<?php echo htmlspecialchars( $_POST['db_name'] ?? '' ); ?>"></div>
+				<div><label>DB Host</label><input name="db_host" value="<?php echo htmlspecialchars( $fields['db_host'] ); ?>"></div>
+				<div><label>DB Name</label><input name="db_name" value="<?php echo htmlspecialchars( $fields['db_name'] ); ?>"></div>
 			</div>
 			<div class="row">
-				<div><label>DB User</label><input name="db_user" value="<?php echo htmlspecialchars( $_POST['db_user'] ?? '' ); ?>"></div>
-				<div><label>DB Password</label><input name="db_pass" type="password" value=""></div>
+				<div><label>DB User</label><input name="db_user" value="<?php echo htmlspecialchars( $fields['db_user'] ); ?>"></div>
+				<div><label>DB Password</label><input name="db_pass" type="password" value="<?php echo htmlspecialchars( $fields['db_pass'] ); ?>"></div>
 			</div>
 			<label>Table prefix</label>
-			<input name="prefix" value="<?php echo htmlspecialchars( $manifest['prefix'] ); ?>">
+			<input name="prefix" value="<?php echo htmlspecialchars( $fields['prefix'] ); ?>">
 
 			<label>New staging URL</label>
-			<input name="new_url" value="<?php echo htmlspecialchars( $guess_url ); ?>">
+			<input name="new_url" value="<?php echo htmlspecialchars( $fields['new_url'] ); ?>">
 
 			<label>Staging directory path (ABSPATH)</label>
-			<input name="new_path" value="<?php echo htmlspecialchars( $guess_path ); ?>">
+			<input name="new_path" value="<?php echo htmlspecialchars( $fields['new_path'] ); ?>">
 
-			<button type="submit">Start migration</button>
+			<button type="submit">Check system →</button>
 		</form>
 		<p class="warn">Original URL: <code><?php echo htmlspecialchars( $manifest['site_url'] ); ?></code></p>
 	<?php endif; ?>
