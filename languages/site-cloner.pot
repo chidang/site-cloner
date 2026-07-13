@@ -9,15 +9,15 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-13T07:50:47+00:00\n"
+"POT-Creation-Date: 2026-07-13T11:24:49+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.10.0\n"
 "X-Domain: site-cloner\n"
 
 #. Plugin Name of the plugin
 #: site-cloner.php
-#: site-cloner.php:66
-#: site-cloner.php:67
+#: site-cloner.php:69
+#: site-cloner.php:70
 msgid "Site Cloner"
 msgstr ""
 
@@ -161,6 +161,7 @@ msgstr ""
 
 #: includes/class-sd-importer.php:66
 #: includes/class-sd-package.php:23
+#: includes/class-sd-package.php:208
 msgid "Invalid package ID."
 msgstr ""
 
@@ -197,6 +198,7 @@ msgid "Could not read database.sql."
 msgstr ""
 
 #: includes/class-sd-package.php:37
+#: includes/class-sd-package.php:266
 msgid "Package not found."
 msgstr ""
 
@@ -311,24 +313,32 @@ msgstr ""
 msgid "Could not write the local file."
 msgstr ""
 
-#: site-cloner.php:73
+#: site-cloner.php:76
 msgid "Site Cloner – Import"
 msgstr ""
 
-#: site-cloner.php:74
+#: site-cloner.php:77
 msgid "Site Cloner Import"
 msgstr ""
 
-#: site-cloner.php:84
+#: site-cloner.php:87
 msgid "Backup"
 msgstr ""
 
-#: site-cloner.php:85
+#: site-cloner.php:88
 msgid "Restore"
 msgstr ""
 
-#: site-cloner.php:116
+#: site-cloner.php:120
 msgid "Permission denied."
+msgstr ""
+
+#: site-cloner.php:222
+msgid "Invalid package."
+msgstr ""
+
+#: site-cloner.php:226
+msgid "Installer not found."
 msgstr ""
 
 #: templates/admin-page.php:6
@@ -392,6 +402,7 @@ msgid "paste the link below and click run:"
 msgstr ""
 
 #: templates/admin-page.php:44
+#: templates/admin-page.php:85
 msgid "Copy"
 msgstr ""
 
@@ -403,12 +414,41 @@ msgstr ""
 msgid "Or download the files manually (empty staging / can't connect)"
 msgstr ""
 
-#: templates/admin-page.php:52
+#: templates/admin-page.php:51
+#: templates/admin-page.php:73
+msgid "Download all files"
+msgstr ""
+
+#: templates/admin-page.php:53
 msgid "Download all files, then use"
 msgstr ""
 
-#: templates/admin-page.php:52
+#: templates/admin-page.php:53
 msgid "on staging."
+msgstr ""
+
+#: templates/admin-page.php:62
+msgid "Packages on this site"
+msgstr ""
+
+#: templates/admin-page.php:63
+msgid "Previously created packages are kept on disk, so you can download the files again or get a fresh pull link after reloading this page."
+msgstr ""
+
+#: templates/admin-page.php:75
+msgid "Get pull link"
+msgstr ""
+
+#: templates/admin-page.php:77
+msgid "Delete"
+msgstr ""
+
+#: templates/admin-page.php:79
+msgid "password-protected"
+msgstr ""
+
+#: templates/admin-page.php:87
+msgid "A brand-new link was generated (valid 48h). Any link shared earlier for this package no longer works."
 msgstr ""
 
 #: templates/import-page.php:6
@@ -448,8 +488,8 @@ msgid "page on production. Staging will download the package and migrate automat
 msgstr ""
 
 #: templates/import-page.php:20
-#: assets/admin.js:182
-#: assets/admin.js:200
+#: assets/admin.js:268
+#: assets/admin.js:286
 msgid "Test connection"
 msgstr ""
 
@@ -531,7 +571,9 @@ msgid "Remove plugin from the source site"
 msgstr ""
 
 #: assets/admin.js:22
-#: assets/admin.js:132
+#: assets/admin.js:163
+#: assets/admin.js:191
+#: assets/admin.js:218
 msgid "An error occurred."
 msgstr ""
 
@@ -541,7 +583,9 @@ msgstr ""
 
 #: assets/admin.js:37
 #: assets/admin.js:78
-#: assets/admin.js:283
+#: assets/admin.js:168
+#: assets/admin.js:196
+#: assets/admin.js:369
 msgid "Server connection error."
 msgstr ""
 
@@ -564,12 +608,12 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: assets/admin.js:68
-#: assets/admin.js:313
+#: assets/admin.js:399
 msgid "Finalizing…"
 msgstr ""
 
 #: assets/admin.js:74
-#: assets/admin.js:319
+#: assets/admin.js:405
 msgid "Error while finalizing."
 msgstr ""
 
@@ -578,119 +622,129 @@ msgid "The package is password-protected. Send the password to the importer thro
 msgstr ""
 
 #: assets/admin.js:111
+#: assets/admin.js:176
 msgid "Copied!"
 msgstr ""
 
-#: assets/admin.js:160
-#: assets/admin.js:265
+#. translators: 1: current file number, 2: total number of files.
+#: assets/admin.js:131
+msgid "Downloading %1$d/%2$d…"
+msgstr ""
+
+#: assets/admin.js:180
+msgid "Delete this package permanently? Its files will no longer be available for download."
+msgstr ""
+
+#: assets/admin.js:246
+#: assets/admin.js:351
 msgid "Preparing…"
 msgstr ""
 
-#: assets/admin.js:176
+#: assets/admin.js:262
 msgid "Testing…"
 msgstr ""
 
-#: assets/admin.js:178
+#: assets/admin.js:264
 msgid "Contacting production…"
 msgstr ""
 
 #. translators: 1: status message from production, 2: number of files, 3: human-readable size.
-#: assets/admin.js:192
+#: assets/admin.js:278
 msgid "%1$s — %2$d file, %3$s."
 msgid_plural "%1$s — %2$d files, %3$s."
 msgstr[0] ""
 msgstr[1] ""
 
-#: assets/admin.js:201
-#: assets/admin.js:234
+#: assets/admin.js:287
+#: assets/admin.js:320
 msgid "Connection error to staging."
 msgstr ""
 
-#: assets/admin.js:214
+#: assets/admin.js:300
 msgid "Fetching package info from production…"
 msgstr ""
 
 #. translators: 1: number of files, 2: human-readable total size.
-#: assets/admin.js:224
+#: assets/admin.js:310
 msgid "Downloading %1$d file (%2$s)…"
 msgid_plural "Downloading %1$d files (%2$s)…"
 msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: file name.
-#: assets/admin.js:255
+#: assets/admin.js:341
 msgid "Error while downloading %s."
 msgstr ""
 
 #. translators: 1: number of files, 2: number of parts.
-#: assets/admin.js:275
+#: assets/admin.js:361
 msgid "Extracting %1$d files (%2$d parts)…"
 msgstr ""
 
-#: assets/admin.js:303
+#: assets/admin.js:389
 msgid "Error while extracting."
 msgstr ""
 
-#: assets/admin.js:309
+#: assets/admin.js:395
 msgid "Importing database in chunks…"
 msgstr ""
 
-#: assets/admin.js:311
+#: assets/admin.js:397
 msgid "Running search-replace in chunks…"
 msgstr ""
 
-#: assets/admin.js:316
+#: assets/admin.js:402
 msgid "Finalize error."
 msgstr ""
 
 #. translators: %s: error message reported by the runner.
-#: assets/admin.js:331
+#: assets/admin.js:417
 msgid "Runner reported an error (%s) — switching to single-request import…"
 msgstr ""
 
-#: assets/admin.js:336
+#: assets/admin.js:422
 msgid "Runner error."
 msgstr ""
 
-#: assets/admin.js:347
+#: assets/admin.js:433
 msgid "Runner couldn't run — switching to single-request database import…"
 msgstr ""
 
 #. translators: 1: runner phase, 2: HTTP status code, 3: extra detail (may be empty).
-#: assets/admin.js:359
+#: assets/admin.js:445
 msgid "Runner error (%1$s) — HTTP %2$s%3$s"
 msgstr ""
 
-#: assets/admin.js:366
+#: assets/admin.js:452
 msgid "Importing database + search-replace (single request, don't reload the page)…"
 msgstr ""
 
-#: assets/admin.js:372
+#: assets/admin.js:458
 msgid "Error while importing database (may time out on large sites)."
 msgstr ""
 
 #. translators: 1: number of SQL statements, 2: number of updated data cells.
-#: assets/admin.js:380
+#: assets/admin.js:466
 msgid "Imported %1$d statements, updated %2$d data cells."
 msgstr ""
 
-#: assets/admin.js:391
+#: assets/admin.js:477
 msgid "Removing…"
 msgstr ""
 
-#: assets/admin.js:396
+#: assets/admin.js:482
 msgid "Removed"
 msgstr ""
 
-#: assets/admin.js:399
-#: assets/admin.js:404
+#: assets/admin.js:485
+#: assets/admin.js:490
 msgid "Remove plugin from source site"
 msgstr ""
 
-#: assets/admin.js:400
+#: assets/admin.js:486
 msgid "Could not remove."
 msgstr ""
 
-#: assets/admin.js:405
+#: assets/admin.js:491
 msgid "Connection error."
 msgstr ""

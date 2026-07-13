@@ -1,5 +1,9 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
+// This template is require'd inside Plugin::render_page(), so every variable
+// here is method-local, not global. The prefix sniff can't see that when it
+// scans the file in isolation, so silence its false positives file-wide.
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 ?>
 <div class="wrap sd-wrap">
 	<h1>Site Cloner</h1>
@@ -48,11 +52,73 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 			<details class="sd-manual">
 				<summary><?php esc_html_e( "Or download the files manually (empty staging / can't connect)", 'site-cloner' ); ?></summary>
+				<p>
+					<a id="sd-dl-package" class="button button-primary" href="#" download>⬇ <?php esc_html_e( 'Download the whole package (.zip)', 'site-cloner' ); ?></a>
+					<button type="button" id="sd-dl-all" class="button"><?php esc_html_e( 'Download files separately', 'site-cloner' ); ?></button>
+				</p>
+				<p class="description"><?php esc_html_e( 'The single .zip bundles every file; unzip it on staging, then run', 'site-cloner' ); ?> <code>installer.php</code>.</p>
 				<ul class="sd-files"></ul>
-				<p class="description"><?php esc_html_e( 'Download all files, then use', 'site-cloner' ); ?> <code>installer.php</code> <?php esc_html_e( 'on staging.', 'site-cloner' ); ?></p>
 			</details>
 		</div>
 
 		<div id="sd-error" class="notice notice-error" style="display:none;"><p></p></div>
 	</div>
+
+	<?php if ( ! empty( $packages ) ) : ?>
+	<div class="sd-card sd-existing">
+		<h2 style="margin-top:0;"><?php esc_html_e( 'Packages on this site', 'site-cloner' ); ?></h2>
+		<p class="description"><?php esc_html_e( 'Previously created packages are kept on disk, so you can download the files again or get a fresh pull link after reloading this page.', 'site-cloner' ); ?></p>
+
+		<?php foreach ( $packages as $sd_pkg ) : ?>
+			<div class="sd-pkg" data-id="<?php echo esc_attr( $sd_pkg['id'] ); ?>">
+				<div class="sd-pkg-head">
+					<code><?php echo esc_html( $sd_pkg['id'] ); ?></code>
+					<span class="description"><?php echo esc_html( trim( $sd_pkg['site_url'] . ' · ' . $sd_pkg['created'] . ' · ' . $sd_pkg['size'], ' ·' ) ); ?></span>
+				</div>
+
+				<p class="sd-pkg-actions">
+					<?php if ( ! empty( $sd_pkg['files']['package'] ) ) : ?>
+						<a class="button button-primary sd-pkg-dlpackage" href="<?php echo esc_url( $sd_pkg['files']['package'] ); ?>" download>⬇ <?php esc_html_e( 'Download package (.zip)', 'site-cloner' ); ?></a>
+					<?php endif; ?>
+					<button type="button" class="button sd-pkg-dlall"><?php esc_html_e( 'Download files separately', 'site-cloner' ); ?></button>
+					<?php if ( $sd_pkg['has_token'] ) : ?>
+						<button type="button" class="button sd-pkg-link"><?php esc_html_e( 'Get pull link', 'site-cloner' ); ?></button>
+					<?php endif; ?>
+					<button type="button" class="button sd-pkg-delete"><?php esc_html_e( 'Delete', 'site-cloner' ); ?></button>
+					<?php if ( $sd_pkg['has_pass'] ) : ?>
+						<span class="description">🔒 <?php esc_html_e( 'password-protected', 'site-cloner' ); ?></span>
+					<?php endif; ?>
+				</p>
+
+				<div class="sd-pkg-linkrow sd-pull-row" style="display:none;">
+					<input type="text" class="sd-pkg-linkinput" readonly>
+					<button type="button" class="button sd-pkg-linkcopy"><?php esc_html_e( 'Copy', 'site-cloner' ); ?></button>
+				</div>
+				<p class="description sd-pkg-linknote" style="display:none;"><?php esc_html_e( 'A brand-new link was generated (valid 48h). Any link shared earlier for this package no longer works.', 'site-cloner' ); ?></p>
+
+				<ul class="sd-files sd-pkg-files">
+					<?php
+					$sd_f = $sd_pkg['files'];
+					if ( ! empty( $sd_f['installer'] ) ) {
+						printf( '<li><a href="%s" download="installer.php">⬇ installer.php</a></li>', esc_url( $sd_f['installer'] ) );
+					}
+					foreach ( $sd_f['archives'] as $sd_az ) {
+						printf(
+							'<li><a href="%1$s" download>⬇ %2$s</a></li>',
+							esc_url( $sd_az ),
+							esc_html( basename( $sd_az ) )
+						);
+					}
+					if ( ! empty( $sd_f['database'] ) ) {
+						printf( '<li><a href="%s" download>⬇ database.sql</a></li>', esc_url( $sd_f['database'] ) );
+					}
+					if ( ! empty( $sd_f['manifest'] ) ) {
+						printf( '<li><a href="%s" download>⬇ manifest.json</a></li>', esc_url( $sd_f['manifest'] ) );
+					}
+					?>
+				</ul>
+			</div>
+		<?php endforeach; ?>
+	</div>
+	<?php endif; ?>
 </div>

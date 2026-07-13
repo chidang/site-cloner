@@ -90,6 +90,11 @@
 			$box.append($('<p class="sd-pass-note" style="color:#b26b00;margin-top:8px;"></p>')
 				.text('🔒 ' + __('The package is password-protected. Send the password to the importer through a separate channel (don\'t paste it alongside the link).', 'site-cloner')));
 		}
+		if (files.package) {
+			$('#sd-dl-package').attr('href', files.package).show();
+		} else {
+			$('#sd-dl-package').hide();
+		}
 		var $ul = $('#sd-result .sd-files').empty();
 		if (files.installer) { $ul.append(link(files.installer, 'installer.php')); }
 		(files.archives || []).forEach(function (url) {
@@ -102,13 +107,99 @@
 		$('#sd-build-spin').hide();
 	}
 	function link(url, label) {
-		return '<li><a href="' + url + '" download>⬇ ' + label + '</a></li>';
+		return '<li><a href="' + url + '" download="' + label + '">⬇ ' + label + '</a></li>';
 	}
 
 	$(document).on('click', '#sd-pull-copy', function () {
 		var el = document.getElementById('sd-pull-link');
 		el.select(); el.setSelectionRange(0, 99999);
 		try { document.execCommand('copy'); $(this).text(__('Copied!', 'site-cloner')); } catch (e) {}
+	});
+
+	// Trigger every download link one after another (staggered so the browser
+	// doesn't drop the queued downloads), so the user gets all parts in a single
+	// click instead of clicking each file.
+	function downloadSeq(links, $btn) {
+		if (!links.length) { return; }
+		var origText = $btn.text();
+		$btn.prop('disabled', true);
+		var i = 0;
+		(function next() {
+			if (i >= links.length) {
+				$btn.prop('disabled', false).text(origText);
+				return;
+			}
+			var src = links[i];
+			i++;
+			$btn.text(sprintf(
+				/* translators: 1: current file number, 2: total number of files. */
+				__('Downloading %1$d/%2$d…', 'site-cloner'), i, links.length
+			));
+			var a = document.createElement('a');
+			a.href = src.href;
+			a.download = src.getAttribute('download') || '';
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			setTimeout(next, 800);
+		})();
+	}
+
+	$(document).on('click', '#sd-dl-all', function () {
+		downloadSeq($('#sd-result .sd-files a[download]').toArray(), $(this));
+	});
+
+	/* ---------- Existing packages (re-shown after reload) ---------- */
+
+	$(document).on('click', '.sd-pkg-dlall', function () {
+		downloadSeq($(this).closest('.sd-pkg').find('.sd-files a[download]').toArray(), $(this));
+	});
+
+	$(document).on('click', '.sd-pkg-link', function () {
+		var $pkg = $(this).closest('.sd-pkg');
+		var $btn = $(this).prop('disabled', true);
+		post('sd_regen_link', { package: $pkg.data('id') })
+			.done(function (r) {
+				$btn.prop('disabled', false);
+				if (r && r.success) {
+					$pkg.find('.sd-pkg-linkrow').show().find('.sd-pkg-linkinput').val(r.data.pull_link);
+					$pkg.find('.sd-pkg-linknote').show();
+				} else {
+					window.alert((r && r.data && r.data.message) || __('An error occurred.', 'site-cloner'));
+				}
+			})
+			.fail(function () {
+				$btn.prop('disabled', false);
+				window.alert(__('Server connection error.', 'site-cloner'));
+			});
+	});
+
+	$(document).on('click', '.sd-pkg-linkcopy', function () {
+		var el = $(this).closest('.sd-pkg-linkrow').find('.sd-pkg-linkinput')[0];
+		if (!el) { return; }
+		el.select(); el.setSelectionRange(0, 99999);
+		try { document.execCommand('copy'); $(this).text(__('Copied!', 'site-cloner')); } catch (e) {}
+	});
+
+	$(document).on('click', '.sd-pkg-delete', function () {
+		if (!window.confirm(__('Delete this package permanently? Its files will no longer be available for download.', 'site-cloner'))) {
+			return;
+		}
+		var $pkg = $(this).closest('.sd-pkg');
+		var $btn = $(this).prop('disabled', true);
+		post('sd_delete_pkg', { package: $pkg.data('id') })
+			.done(function (r) {
+				if (r && r.success) {
+					$pkg.slideUp(200, function () { $pkg.remove(); });
+				} else {
+					$btn.prop('disabled', false);
+					window.alert((r && r.data && r.data.message) || __('An error occurred.', 'site-cloner'));
+				}
+			})
+			.fail(function () {
+				$btn.prop('disabled', false);
+				window.alert(__('Server connection error.', 'site-cloner'));
+			});
 	});
 
 	/* ---------------- Import (staging) ---------------- */
@@ -382,28 +473,7 @@
 		) + ' ' + (r.note || '');
 		$('#sd-imp-result .sd-imp-log').text(log);
 		$('#sd-imp-result .sd-imp-login').attr('href', (r.new_url || '') + '/wp-admin/');
-		if (impLink) { $('#sd-src-uninstall-wrap').show(); }
 		$('#sd-imp-result').show();
 	}
-
-	$('#sd-src-uninstall').on('click', function () {
-		if (!impLink) { return; }
-		var $btn = $(this).prop('disabled', true).text(__('Removing…', 'site-cloner'));
-		var $msg = $('.sd-src-uninstall-msg').text('');
-		post('sd_pull_uninstall', { link: impLink, password: impPassword, insecure: impInsecure })
-			.done(function (r) {
-				if (r.success && r.data && r.data.ok) {
-					$btn.text(__('Removed', 'site-cloner'));
-					$msg.css('color', '#1e4620').text('✔ ' + r.data.message);
-				} else {
-					$btn.prop('disabled', false).text(__('Remove plugin from source site', 'site-cloner'));
-					$msg.css('color', '#8a1f1f').text('✖ ' + ((r.data && r.data.message) || __('Could not remove.', 'site-cloner')));
-				}
-			})
-			.fail(function () {
-				$btn.prop('disabled', false).text(__('Remove plugin from source site', 'site-cloner'));
-				$msg.css('color', '#8a1f1f').text('✖ ' + __('Connection error.', 'site-cloner'));
-			});
-	});
 
 })(jQuery);

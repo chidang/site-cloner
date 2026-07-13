@@ -28,3 +28,12 @@
 /* Loading spinner shown next to the Create Package button while building */
 .sd-spinner{display:inline-block;vertical-align:middle;width:20px;height:20px;margin-left:10px;border:3px solid #c3c4c7;border-top-color:#2271b1;border-radius:50%;animation:sd-spin .8s linear infinite;}
 @keyframes sd-spin{to{transform:rotate(360deg);}}
+
+/* Existing packages list (create page) */
+.sd-pkg{padding:12px 0;border-top:1px solid #e2e4e7;}
+.sd-pkg:first-of-type{border-top:0;}
+.sd-pkg-head{margin-bottom:8px;}
+.sd-pkg-head code{font-size:13px;}
+.sd-pkg-head .description{margin-left:8px;}
+.sd-pkg-actions{margin:0 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.sd-pkg-linkinput{flex:1;min-width:260px;}

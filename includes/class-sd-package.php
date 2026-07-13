@@ -176,12 +176,144 @@ class Package {
 			'pull_link' => $pull_link,
 			'has_pass'  => $has_pass,
 			'files'     => array(
-				'installer' => $base . '/installer.php',
+				'package'   => self::package_download_url( $this->id ),
+				'installer' => self::installer_download_url( $this->id ),
 				'archives'  => $archive_urls,
 				'database'  => $base . '/database.sql',
 				'manifest'  => $base . '/manifest.json',
 			),
 			'dir'       => $this->dir,
 		);
+	}
+
+	/**
+	 * installer.php lives inside <uploads>/sd-packages and is a PHP file, so most
+	 * servers (nginx/Apache hardening) refuse direct access to it -> the manual
+	 * download 404s. Serve it through admin-ajax instead, which streams the raw
+	 * bytes as an attachment.
+	 */
+	public static function installer_download_url( $id ) {
+		return add_query_arg(
+			array(
+				'action'  => 'sd_installer',
+				'package' => rawurlencode( $id ),
+				'nonce'   => wp_create_nonce( 'sd_build' ),
+			),
+			admin_url( 'admin-ajax.php' )
+		);
+	}
+
+	/**
+	 * URL that bundles the whole package (installer.php + archive parts +
+	 * database.sql + manifest.json) into a single streamed .zip, so the user
+	 * downloads once and unzips locally. Routed through admin-ajax because the
+	 * package folder also contains a PHP file that direct URLs would block.
+	 */
+	public static function package_download_url( $id ) {
+		return add_query_arg(
+			array(
+				'action'  => 'sd_package_zip',
+				'package' => rawurlencode( $id ),
+				'nonce'   => wp_create_nonce( 'sd_build' ),
+			),
+			admin_url( 'admin-ajax.php' )
+		);
+	}
+
+	/** Validate an id and return a package handle without requiring state.json. */
+	public static function for_id( $id ) {
+		if ( ! preg_match( '/^[A-Za-z0-9_]+$/', $id ) ) {
+			throw new \Exception( esc_html__( 'Invalid package ID.', 'site-cloner' ) );
+		}
+		return new self( $id );
+	}
+
+	/**
+	 * List finished packages on this (production) side, with manual-download URLs,
+	 * so the admin page can re-display them after a reload.
+	 */
+	public static function list_all() {
+		$out = array();
+		if ( ! is_dir( FLEXA_PACKAGE_DIR ) ) {
+			return $out;
+		}
+		foreach ( glob( FLEXA_PACKAGE_DIR . '/*', GLOB_ONLYDIR ) as $dir ) {
+			if ( ! file_exists( "$dir/manifest.json" ) ) {
+				continue;
+			}
+			$id   = basename( $dir );
+			$base = FLEXA_PACKAGE_URL . '/' . $id;
+			$m    = json_decode( @file_get_contents( "$dir/manifest.json" ), true );
+
+			$archives = array();
+			$size     = (int) @filesize( "$dir/database.sql" );
+			foreach ( glob( "$dir/archive*.zip" ) as $az ) {
+				$archives[] = $base . '/' . basename( $az );
+				$size      += (int) @filesize( $az );
+			}
+
+			$files = array( 'package' => self::package_download_url( $id ), 'archives' => $archives );
+			if ( file_exists( "$dir/installer.php" ) ) { $files['installer'] = self::installer_download_url( $id ); }
+			if ( file_exists( "$dir/database.sql" ) )  { $files['database']  = $base . '/database.sql'; }
+			$files['manifest'] = $base . '/manifest.json';
+
+			$out[] = array(
+				'id'        => $id,
+				'site_url'  => isset( $m['site_url'] ) ? $m['site_url'] : '',
+				'created'   => isset( $m['created'] ) ? $m['created'] : '',
+				'size'      => size_format( $size ),
+				'files'     => $files,
+				'has_token' => file_exists( "$dir/pull-token.hash" ),
+				'has_pass'  => file_exists( "$dir/pull-pass.hash" ),
+			);
+		}
+		// Newest first (ids are timestamp-prefixed).
+		usort( $out, function ( $a, $b ) {
+			return strcmp( $b['id'], $a['id'] );
+		} );
+		return $out;
+	}
+
+	/**
+	 * Mint a fresh pull token and return a new link. The raw token is shown only
+	 * once (only its hash is stored), so a lost link cannot be recovered — it is
+	 * regenerated, which invalidates any previously shared link for this package.
+	 */
+	public function regenerate_link() {
+		if ( ! is_dir( $this->dir ) ) {
+			throw new \Exception( esc_html__( 'Package not found.', 'site-cloner' ) );
+		}
+		$token = bin2hex( random_bytes( 32 ) );
+		file_put_contents( $this->dir . '/pull-token.hash', hash( 'sha256', $token ) );
+
+		$meta = json_decode( @file_get_contents( $this->dir . '/pull-meta.json' ), true );
+		if ( ! is_array( $meta ) ) {
+			$meta = array( 'allow_ips' => array() );
+		}
+		$meta['created'] = time();
+		$meta['expires'] = time() + 48 * 3600;
+		file_put_contents( $this->dir . '/pull-meta.json', wp_json_encode( $meta ) );
+
+		return trailingslashit( home_url() ) . '?sd_pull=' . rawurlencode( $this->id ) . '&key=' . $token;
+	}
+
+	/** Delete this package directory (removes the sensitive DB dump + archives). */
+	public function delete() {
+		if ( ! is_dir( $this->dir ) ) {
+			return;
+		}
+		foreach ( (array) glob( $this->dir . '/*' ) as $item ) {
+			if ( is_file( $item ) ) {
+				wp_delete_file( $item );
+			}
+		}
+		// Hidden dot-files written into the package dir (index.php is caught above; .htaccess/.filelist are not).
+		foreach ( array( '.htaccess', '.filelist' ) as $hidden ) {
+			if ( is_file( $this->dir . '/' . $hidden ) ) {
+				wp_delete_file( $this->dir . '/' . $hidden );
+			}
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Removing the now-empty package working directory; WP_Filesystem needs FS credentials unavailable in this AJAX context.
+		@rmdir( $this->dir );
 	}
 }

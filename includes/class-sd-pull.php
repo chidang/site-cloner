@@ -71,32 +71,13 @@ class Pull {
 
 		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : 'info';
 
-		// Cleanup: staging calls this after pulling is done -> delete heavy/sensitive files (DB dump, archive)
-		// but KEEP the token+meta so the later "uninstall" command can still be authenticated.
+		// Cleanup: staging calls this after pulling is done -> delete heavy/sensitive files (DB dump, archive).
 		if ( 'cleanup' === $action ) {
 			foreach ( glob( $dir . '/archive*.zip' ) as $f ) { wp_delete_file( $f ); }
 			wp_delete_file( $dir . '/database.sql' );
 			wp_delete_file( $dir . '/manifest.json' );
 			wp_delete_file( $dir . '/installer.php' );
 			self::json( array( 'ok' => true, 'cleaned' => true ) );
-		}
-
-		// Full uninstall: delete all packages + self-deactivate & remove the plugin files from the source site.
-		if ( 'uninstall' === $action ) {
-			foreach ( glob( FLEXA_PACKAGE_DIR . '/*', GLOB_ONLYDIR ) as $d ) {
-				self::rrmdir( $d );
-			}
-			$plugin = 'site-cloner/site-cloner.php';
-			if ( ! function_exists( 'deactivate_plugins' ) ) {
-				require_once ABSPATH . 'wp-admin/includes/plugin.php';
-			}
-			if ( function_exists( 'deactivate_plugins' ) ) {
-				deactivate_plugins( $plugin, true );
-			}
-			$pdir = untrailingslashit( FLEXA_PATH ); // this plugin's own directory
-			// The code is already loaded in memory, so deleting the files on disk still lets this request finish.
-			self::rrmdir( $pdir );
-			self::json( array( 'ok' => true, 'uninstalled' => true ) );
 		}
 
 		if ( 'info' === $action ) {
@@ -166,20 +147,6 @@ class Pull {
 	private static function json( $arr, $code = 200 ) {
 		while ( ob_get_level() ) { ob_end_clean(); }
 		wp_send_json( $arr, $code ); // sets the JSON Content-Type + status, prints wp_json_encode(), and exits.
-	}
-
-	/** Recursively delete a directory (used to clean up the source). */
-	private static function rrmdir( $dir ) {
-		if ( ! is_dir( $dir ) ) { return; }
-		$items = @scandir( $dir );
-		if ( $items ) {
-			foreach ( $items as $it ) {
-				if ( '.' === $it || '..' === $it ) { continue; }
-				$p = $dir . '/' . $it;
-				is_dir( $p ) ? self::rrmdir( $p ) : wp_delete_file( $p );
-			}
-		}
-		@rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Recursive directory cleanup of a package folder; WP_Filesystem is unavailable in this token-authenticated front-end request context.
 	}
 
 	/* ============================ STAGING ============================ */
@@ -320,23 +287,6 @@ class Pull {
 			'sslverify' => (bool) $verify_ssl,
 			'headers'   => $headers,
 		);
-	}
-
-	/** Ask the source to fully uninstall the plugin + all packages (after migration is done). */
-	public static function uninstall_remote( $link, $verify_ssl = true, $password = '' ) {
-		if ( ! self::valid_link( $link ) ) {
-			return array( 'ok' => false, 'message' => __( 'Invalid link.', 'site-cloner' ) );
-		}
-		$url = add_query_arg( 'action', 'uninstall', $link );
-		$res = wp_remote_get( $url, self::req_args( $verify_ssl, $password, 30 ) );
-		if ( is_wp_error( $res ) ) {
-			return array( 'ok' => false, 'message' => $res->get_error_message() );
-		}
-		$data = json_decode( wp_remote_retrieve_body( $res ), true );
-		if ( ! empty( $data['uninstalled'] ) ) {
-			return array( 'ok' => true, 'message' => __( 'Removed the plugin from the source site.', 'site-cloner' ) );
-		}
-		return array( 'ok' => false, 'message' => $data['message'] ?? __( 'Could not uninstall (check the token/password/IP).', 'site-cloner' ) );
 	}
 
 	/** Ask the source to delete the package after pulling is done (best-effort). */

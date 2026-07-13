@@ -258,6 +258,18 @@ class Importer {
 			throw new \Exception( esc_html__( 'Could not read database.sql.', 'site-cloner' ) );
 		}
 		mysqli_query( $mysqli, 'SET FOREIGN_KEY_CHECKS=0' ); // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_query -- Streams the bulk import via WP's own mysqli handle ($wpdb->dbh); $wpdb->query buffers all rows and cannot stream a multi-GB dump.
+
+		// Relax strict mode so legacy zero-date defaults (e.g. WooCommerce ActionScheduler's
+		// "datetime NOT NULL DEFAULT '0000-00-00 00:00:00'") import on MySQL 5.7+/8.0.
+		// Save the current mode and restore it afterwards (this is WP's shared connection).
+		$prev_mode = '';
+		$mode_res  = mysqli_query( $mysqli, 'SELECT @@SESSION.sql_mode' ); // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_query, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Streams the bulk import via WP's own mysqli handle; see note above.
+		if ( $mode_res ) {
+			$row       = mysqli_fetch_row( $mode_res ); // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_fetch_row -- Reads the session sql_mode via WP's own mysqli handle so it can be restored after the streamed import; see note above.
+			$prev_mode = is_array( $row ) ? (string) $row[0] : '';
+		}
+		mysqli_query( $mysqli, "SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION'" ); // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_query -- Streams the bulk import via WP's own mysqli handle; see note above.
+
 		$buffer = '';
 		$count  = 0;
 		while ( ( $line = fgets( $fh ) ) !== false ) {
@@ -274,6 +286,7 @@ class Importer {
 		}
 		fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Chunked stream I/O; see fopen note.
 		mysqli_query( $mysqli, 'SET FOREIGN_KEY_CHECKS=1' ); // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_query -- Streams the bulk import via WP's own mysqli handle ($wpdb->dbh); $wpdb->query buffers all rows and cannot stream a multi-GB dump.
+		mysqli_query( $mysqli, "SET SESSION sql_mode = '" . mysqli_real_escape_string( $mysqli, $prev_mode ) . "'" ); // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_query, WordPress.DB.RestrictedFunctions.mysql_mysqli_real_escape_string -- Restore WP's original sql_mode on its shared connection; see note above.
 		return $count;
 	}
 

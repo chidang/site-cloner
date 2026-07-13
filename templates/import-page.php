@@ -1,6 +1,10 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 /** @var array $packages */
+// This template is require'd inside Plugin::render_import_page(), so every
+// variable here is method-local, not global. The prefix sniff can't see that
+// when it scans the file in isolation, so silence its false positives file-wide.
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 ?>
 <div class="wrap sd-wrap">
 	<h1><?php esc_html_e( 'Site Cloner – Import (Staging)', 'site-cloner' ); ?></h1>
@@ -41,13 +45,13 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 			<table class="widefat striped" id="sd-pkg-table">
 				<thead><tr><th></th><th><?php esc_html_e( 'Package', 'site-cloner' ); ?></th><th><?php esc_html_e( 'Source site', 'site-cloner' ); ?></th><th><?php esc_html_e( 'Created', 'site-cloner' ); ?></th><th><?php esc_html_e( 'Size', 'site-cloner' ); ?></th></tr></thead>
 				<tbody>
-				<?php foreach ( $packages as $p ) : ?>
+				<?php foreach ( $packages as $sd_p ) : ?>
 					<tr>
-						<td><input type="radio" name="sd_pkg" value="<?php echo esc_attr( $p['id'] ); ?>"></td>
-						<td><code><?php echo esc_html( $p['id'] ); ?></code></td>
-						<td><?php echo esc_html( $p['site_url'] ); ?></td>
-						<td><?php echo esc_html( $p['created'] ); ?></td>
-						<td><?php echo esc_html( $p['size'] ); ?></td>
+						<td><input type="radio" name="sd_pkg" value="<?php echo esc_attr( $sd_p['id'] ); ?>"></td>
+						<td><code><?php echo esc_html( $sd_p['id'] ); ?></code></td>
+						<td><?php echo esc_html( $sd_p['site_url'] ); ?></td>
+						<td><?php echo esc_html( $sd_p['created'] ); ?></td>
+						<td><?php echo esc_html( $sd_p['size'] ); ?></td>
 					</tr>
 				<?php endforeach; ?>
 				</tbody>
@@ -80,10 +84,6 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 			<h2>✅ <?php esc_html_e( 'Migration complete', 'site-cloner' ); ?></h2>
 			<p class="sd-imp-log"></p>
 			<p><a class="sd-imp-login" href="#">→ <?php esc_html_e( 'Open wp-admin (log back in if needed)', 'site-cloner' ); ?></a></p>
-			<p id="sd-src-uninstall-wrap" style="display:none;margin-top:10px;">
-				<button id="sd-src-uninstall" class="button"><?php esc_html_e( 'Remove plugin from the source site', 'site-cloner' ); ?></button>
-				<span class="sd-src-uninstall-msg" style="margin-left:8px;"></span>
-			</p>
 		</div>
 
 		<div id="sd-imp-error" class="notice notice-error" style="display:none;"><p></p></div>

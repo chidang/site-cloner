@@ -13,6 +13,11 @@
 @ignore_user_abort( true );
 @ini_set( 'memory_limit', '512M' );
 error_reporting( E_ERROR | E_PARSE );
+// PHP 8.1+ makes mysqli THROW on query errors by default; turn that off so the
+// import handles failures via return values instead of aborting.
+if ( function_exists( 'mysqli_report' ) ) {
+	mysqli_report( MYSQLI_REPORT_OFF );
+}
 header( 'Content-Type: application/json; charset=utf-8' );
 ob_start();
 
@@ -100,6 +105,9 @@ if ( ! $mysqli ) {
 	sd_die( array( 'ok' => false, 'message' => 'DB connection failed: ' . mysqli_connect_error() ) );
 }
 mysqli_set_charset( $mysqli, 'utf8mb4' );
+// Relax strict mode so legacy zero-date defaults (e.g. WooCommerce ActionScheduler's
+// "datetime NOT NULL DEFAULT '0000-00-00 00:00:00'") import on MySQL 5.7+/8.0.
+mysqli_query( $mysqli, "SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION'" );
 mysqli_query( $mysqli, 'SET SESSION FOREIGN_KEY_CHECKS=0' );
 
 /* ---- Serialization-safe replace ---- */

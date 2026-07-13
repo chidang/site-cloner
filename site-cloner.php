@@ -21,13 +21,12 @@ define( 'FLEXA_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FLEXA_URL', plugin_dir_url( __FILE__ ) );
 
 // Package storage directory: <uploads>/sd-packages (resolved via wp_upload_dir()).
-$sd_uploads = wp_upload_dir();
-define( 'FLEXA_PACKAGE_DIR', $sd_uploads['basedir'] . '/sd-packages' );
-define( 'FLEXA_PACKAGE_URL', $sd_uploads['baseurl'] . '/sd-packages' );
-unset( $sd_uploads );
+define( 'FLEXA_PACKAGE_DIR', wp_upload_dir()['basedir'] . '/sd-packages' );
+define( 'FLEXA_PACKAGE_URL', wp_upload_dir()['baseurl'] . '/sd-packages' );
 
 require_once FLEXA_PATH . 'includes/class-sd-database.php';
 require_once FLEXA_PATH . 'includes/class-sd-archive.php';
+require_once FLEXA_PATH . 'includes/class-sd-zipstream.php';
 require_once FLEXA_PATH . 'includes/class-sd-package.php';
 require_once FLEXA_PATH . 'includes/class-sd-replace.php';
 require_once FLEXA_PATH . 'includes/class-sd-importer.php';
@@ -47,6 +46,12 @@ class Plugin {
 		add_action( 'wp_ajax_sd_build_files',    array( $this, 'ajax_files' ) );
 		add_action( 'wp_ajax_sd_build_finalize', array( $this, 'ajax_finalize' ) );
 
+		// Manage packages already built on this site (re-shown after a reload).
+		add_action( 'wp_ajax_sd_regen_link', array( $this, 'ajax_regen_link' ) );
+		add_action( 'wp_ajax_sd_delete_pkg', array( $this, 'ajax_delete_pkg' ) );
+		add_action( 'wp_ajax_sd_installer',  array( $this, 'ajax_installer' ) );
+		add_action( 'wp_ajax_sd_package_zip', array( $this, 'ajax_download_package' ) );
+
 		// Import on the staging side.
 		add_action( 'wp_ajax_sd_import_prepare', array( $this, 'ajax_import_prepare' ) );
 		add_action( 'wp_ajax_sd_import_extract', array( $this, 'ajax_import_extract' ) );
@@ -58,7 +63,6 @@ class Plugin {
 		add_action( 'wp_ajax_sd_pull_download', array( $this, 'ajax_pull_download' ) );
 		add_action( 'wp_ajax_sd_pull_test',     array( $this, 'ajax_pull_test' ) );
 		add_action( 'wp_ajax_sd_pull_cleanup',  array( $this, 'ajax_pull_cleanup' ) );
-		add_action( 'wp_ajax_sd_pull_uninstall', array( $this, 'ajax_pull_uninstall' ) );
 	}
 
 	public function menu() {
@@ -101,6 +105,7 @@ class Plugin {
 	}
 
 	public function render_page() {
+		$packages = Package::list_all();
 		require FLEXA_PATH . 'templates/admin-page.php';
 	}
 
@@ -117,7 +122,7 @@ class Plugin {
 		}
 	}
 
-	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Every AJAX handler below calls $this->guard() first, which runs check_ajax_referer( 'sd_build', 'nonce' ) and current_user_can( 'manage_options' ).
+	// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended -- Every AJAX handler below calls $this->guard() first, which runs check_ajax_referer( 'sd_build', 'nonce' ) and current_user_can( 'manage_options' ).
 
 	/** Step 1: initialize the package, scan tables and the file list. */
 	public function ajax_init() {
@@ -182,6 +187,81 @@ class Plugin {
 		}
 	}
 
+	/** Mint a fresh pull link for an existing package (the original is not recoverable). */
+	public function ajax_regen_link() {
+		$this->guard();
+		$id = sanitize_text_field( wp_unslash( $_POST['package'] ?? '' ) );
+		try {
+			$link = Package::for_id( $id )->regenerate_link();
+			wp_send_json_success( array( 'pull_link' => $link ) );
+		} catch ( \Exception $e ) {
+			wp_send_json_error( array( 'message' => $e->getMessage() ) );
+		}
+	}
+
+	/** Delete an existing package (removes its DB dump + archives from disk). */
+	public function ajax_delete_pkg() {
+		$this->guard();
+		$id = sanitize_text_field( wp_unslash( $_POST['package'] ?? '' ) );
+		try {
+			Package::for_id( $id )->delete();
+			wp_send_json_success( array( 'deleted' => true ) );
+		} catch ( \Exception $e ) {
+			wp_send_json_error( array( 'message' => $e->getMessage() ) );
+		}
+	}
+
+	/**
+	 * Stream a package's installer.php as a forced download. Direct URLs to a
+	 * .php file under /uploads are blocked by most servers (nginx/Apache), so the
+	 * manual-download link 404s -> proxy the bytes through admin-ajax instead.
+	 */
+	public function ajax_installer() {
+		$this->guard();
+		$id = sanitize_text_field( wp_unslash( $_REQUEST['package'] ?? '' ) );
+		if ( ! preg_match( '/^[A-Za-z0-9_]+$/', $id ) ) {
+			wp_die( esc_html__( 'Invalid package.', 'site-cloner' ), '', array( 'response' => 400 ) );
+		}
+		$file = FLEXA_PACKAGE_DIR . '/' . $id . '/installer.php';
+		if ( ! is_file( $file ) ) {
+			wp_die( esc_html__( 'Installer not found.', 'site-cloner' ), '', array( 'response' => 404 ) );
+		}
+		nocache_headers();
+		header( 'Content-Type: application/octet-stream' );
+		header( 'Content-Disposition: attachment; filename="installer.php"' );
+		header( 'Content-Length: ' . filesize( $file ) );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents, WordPress.Security.EscapeOutput.OutputNotEscaped -- Streaming the raw installer.php bytes as an octet-stream download; escaping/WP_Filesystem would corrupt the file.
+		echo file_get_contents( $file );
+		exit;
+	}
+
+	/**
+	 * Bundle a whole package (installer.php + archive parts + database.sql +
+	 * manifest.json) into one streamed .zip so the user can download it once and
+	 * unzip locally, instead of grabbing every file separately.
+	 */
+	public function ajax_download_package() {
+		$this->guard();
+		$id = sanitize_text_field( wp_unslash( $_REQUEST['package'] ?? '' ) );
+		if ( ! preg_match( '/^[A-Za-z0-9_]+$/', $id ) ) {
+			wp_die( esc_html__( 'Invalid package.', 'site-cloner' ), '', array( 'response' => 400 ) );
+		}
+		$dir = FLEXA_PACKAGE_DIR . '/' . $id;
+		if ( ! is_dir( $dir ) ) {
+			wp_die( esc_html__( 'Package not found.', 'site-cloner' ), '', array( 'response' => 404 ) );
+		}
+		// Ship the migration files only; skip internal token/state/hidden files.
+		$skip    = array( 'sd-state.json', 'sd-token.hash', 'pull-token.hash', 'pull-pass.hash', 'pull-meta.json', '.htaccess' );
+		$entries = array();
+		foreach ( glob( $dir . '/*' ) as $f ) {
+			if ( is_file( $f ) && ! in_array( basename( $f ), $skip, true ) ) {
+				$entries[] = array( 'path' => $f, 'name' => basename( $f ) );
+			}
+		}
+		Zip_Stream::stream( $entries, 'site-cloner-' . $id . '.zip' );
+		exit;
+	}
+
 	/** ----- Import (staging) ----- */
 
 	public function ajax_import_prepare() {
@@ -223,7 +303,7 @@ class Plugin {
 
 	public function ajax_pull_info() {
 		$this->guard();
-		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) );
+		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- esc_url_raw() sanitizes the URL; WPCS classes it as an escaping (not sanitizing) function so it flags a false positive.
 		$verify = empty( $_POST['insecure'] );
 		$pwd    = (string) wp_unslash( $_POST['password'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw password forwarded to the source over a header and verified with password_verify(); sanitizing would corrupt valid passwords.
 		try {
@@ -235,7 +315,7 @@ class Plugin {
 
 	public function ajax_pull_test() {
 		$this->guard();
-		$link = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) );
+		$link = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- esc_url_raw() sanitizes the URL; WPCS classes it as an escaping (not sanitizing) function so it flags a false positive.
 		$pwd  = (string) wp_unslash( $_POST['password'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw password forwarded to the source over a header and verified with password_verify(); sanitizing would corrupt valid passwords.
 		try {
 			wp_send_json_success( Pull::test( $link, $pwd ) );
@@ -246,23 +326,15 @@ class Plugin {
 
 	public function ajax_pull_cleanup() {
 		$this->guard();
-		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) );
+		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- esc_url_raw() sanitizes the URL; WPCS classes it as an escaping (not sanitizing) function so it flags a false positive.
 		$verify = empty( $_POST['insecure'] );
 		$pwd    = (string) wp_unslash( $_POST['password'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw password forwarded to the source over a header and verified with password_verify(); sanitizing would corrupt valid passwords.
 		wp_send_json_success( array( 'cleaned' => Pull::cleanup( $link, $verify, $pwd ) ) );
 	}
 
-	public function ajax_pull_uninstall() {
-		$this->guard();
-		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) );
-		$verify = empty( $_POST['insecure'] );
-		$pwd    = (string) wp_unslash( $_POST['password'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw password forwarded to the source over a header and verified with password_verify(); sanitizing would corrupt valid passwords.
-		wp_send_json_success( Pull::uninstall_remote( $link, $verify, $pwd ) );
-	}
-
 	public function ajax_pull_download() {
 		$this->guard();
-		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) );
+		$link   = esc_url_raw( trim( wp_unslash( $_POST['link'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- esc_url_raw() sanitizes the URL; WPCS classes it as an escaping (not sanitizing) function so it flags a false positive.
 		$name   = sanitize_text_field( wp_unslash( $_POST['name'] ?? '' ) );
 		$offset = absint( wp_unslash( $_POST['offset'] ?? 0 ) );
 		$total  = absint( wp_unslash( $_POST['total'] ?? 0 ) );
@@ -274,7 +346,7 @@ class Plugin {
 			wp_send_json_error( array( 'message' => $e->getMessage() ) );
 		}
 	}
-	// phpcs:enable WordPress.Security.NonceVerification.Missing
+	// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended
 }
 
 new Plugin();
