@@ -4,7 +4,7 @@ Tags: migration, staging, clone, backup, duplicate
 Requires at least: 5.0
 Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -70,10 +70,21 @@ Yes. All admin-facing strings (PHP and JavaScript) are internationalized under t
 
 == Changelog ==
 
+= 1.0.1 =
+* New: manual installer now runs a system requirements check (files present, database connection, PHP extensions) before starting a migration.
+* New: one-click cleanup of the migration files (installer, archives, database dump, manifest) from the success screen after migrating.
+* New: download an entire package as a single .zip, in addition to downloading each file separately.
+* Fix: database import could fail on MySQL 5.7+/8.0 with "Invalid default value" on legacy zero-date columns (e.g. WooCommerce ActionScheduler).
+* Fix: downloading installer.php could fail on servers that block direct access to PHP files under uploads; it is now served safely through the admin.
+* Change: removed the "Remove plugin from the source site" button — uninstall the plugin on the source site manually.
+
 = 1.0.0 =
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.0.1 =
+Adds a pre-migration system check, one-click cleanup, and single-zip package download; fixes database import on MySQL 5.7+/8.0 and installer.php downloads.
 
 = 1.0.0 =
 Initial release.
